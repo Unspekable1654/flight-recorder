@@ -392,10 +392,11 @@ func TestBundleDigestIsStable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ExportToCASE: %v", err)
 	}
-	if BundleDigest(raw) != BundleDigest(raw) {
+	first, second := BundleDigest(raw), BundleDigest(raw)
+	if first != second {
 		t.Error("digest is not stable")
 	}
-	if len(BundleDigest(raw)) != 64 {
+	if len(first) != 64 {
 		t.Error("digest is not a SHA-256 hex string")
 	}
 }

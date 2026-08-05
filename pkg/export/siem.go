@@ -428,11 +428,18 @@ func (s *Syslog) ensureConn(ctx context.Context) error {
 
 	switch s.cfg.Network {
 	case "tcp+tls":
-		conn, err = tls.DialWithDialer(dialer, "tcp", s.cfg.Address, &tls.Config{
-			MinVersion: tls.VersionTLS12,
-			//nolint:gosec // Operator-selected, see httpClient.
-			InsecureSkipVerify: s.cfg.Insecure,
-		})
+		// tls.Dialer rather than tls.DialWithDialer: the handshake then
+		// respects ctx, so a collector that accepts the connection and stalls
+		// cannot pin this goroutine indefinitely.
+		tlsDialer := &tls.Dialer{
+			NetDialer: dialer,
+			Config: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+				//nolint:gosec // Operator-selected, see httpClient.
+				InsecureSkipVerify: s.cfg.Insecure,
+			},
+		}
+		conn, err = tlsDialer.DialContext(ctx, "tcp", s.cfg.Address)
 	default:
 		conn, err = dialer.DialContext(ctx, s.cfg.Network, s.cfg.Address)
 	}
@@ -574,6 +581,9 @@ type FileExporter struct {
 
 // NewFileExporter opens (or creates) the target file in append mode.
 func NewFileExporter(path string) (*FileExporter, error) {
+	// Notification records are metadata only, by the design rule that no
+	// captured memory ever leaves the node through an exporter.
+	// #nosec G302
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o640)
 	if err != nil {
 		return nil, fmt.Errorf("export: open notification file %s: %w", path, err)

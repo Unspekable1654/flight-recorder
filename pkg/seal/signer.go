@@ -168,9 +168,14 @@ func (s *Signer) WritePublicKey(path string) error {
 		return fmt.Errorf("seal: marshal public key: %w", err)
 	}
 	encoded := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})
+	// This directory holds only the PUBLIC key, which exists to be handed to
+	// examiners; restricting it would obstruct the verification workflow.
+	// #nosec G301
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("seal: create public key directory: %w", err)
 	}
+	// A public key is not a secret; 0644 is the point of it.
+	// #nosec G306
 	if err := os.WriteFile(path, encoded, 0o644); err != nil {
 		return fmt.Errorf("seal: write public key %s: %w", path, err)
 	}

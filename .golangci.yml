@@ -31,18 +31,25 @@ linters:
   settings:
     errcheck:
       exclude-functions:
-        # Best-effort cleanup and audit writes are deliberately unchecked at
-        # call sites where failing would be worse than continuing.
+        # Best-effort cleanup at call sites where failing would be worse than
+        # continuing.
         - (io.Closer).Close
         - (*os.File).Close
+        # CLI output. If writing to stdout fails there is nowhere left to
+        # report it, and the command's real work has already succeeded.
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
     gosec:
       excludes:
         - G104  # duplicate of errcheck
         - G304  # file paths are operator-supplied by design (evidence dirs, keys)
         - G115  # integer conversions are bounds-checked where they matter
     govet:
-      enable:
-        - shadow
+      # `shadow` is deliberately NOT enabled. The pattern it flags here is
+      # `if err := f(); err != nil` inside a function that already has an err -
+      # which is idiomatic Go and scopes the error more tightly, not less.
+      enable-all: false
     staticcheck:
       checks:
         - all

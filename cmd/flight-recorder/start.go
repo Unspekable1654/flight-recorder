@@ -224,7 +224,7 @@ func runStart(cmd *cobra.Command, opts *startOptions) error {
 		log.Warn().Err(err).Msg("audit log unavailable; continuing without it")
 		audit, _ = telemetry.NewAuditLog(telemetry.AuditOptions{})
 	}
-	defer audit.Close()
+	defer func() { _ = audit.Close() }()
 
 	_ = audit.Write(telemetry.AuditEntry{Action: telemetry.AuditStart, Reason: strings.Join(os.Args, " ")})
 	if generated {
@@ -311,11 +311,11 @@ func runStart(cmd *cobra.Command, opts *startOptions) error {
 	})
 
 	// ---- exporters --------------------------------------------------------------
-	exporters, err := buildExporters(opts, log)
+	exporters, err := buildExporters(opts)
 	if err != nil {
 		return err
 	}
-	defer exporters.Close()
+	defer func() { _ = exporters.Close() }()
 	if exporters.Len() > 0 {
 		log.Info().Strs("targets", exporters.Names()).Msg("export targets configured")
 	}
@@ -360,7 +360,7 @@ func runStart(cmd *cobra.Command, opts *startOptions) error {
 	if err != nil {
 		return err
 	}
-	defer kernelProbe.Close()
+	defer func() { _ = kernelProbe.Close() }()
 
 	health.SetProbesAttached(true)
 	health.SetRingbufActive(true)
@@ -608,7 +608,7 @@ func resolveNodeName(flag string) string {
 	return host
 }
 
-func buildExporters(opts *startOptions, log zerolog.Logger) (*export.Multi, error) {
+func buildExporters(opts *startOptions) (*export.Multi, error) {
 	multi := export.NewMulti()
 
 	if opts.webhookURL != "" {

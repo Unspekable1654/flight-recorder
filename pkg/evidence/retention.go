@@ -66,13 +66,15 @@ func (r *Retention) Sweep() (SweepResult, error) {
 	// Oldest first.
 	sort.Slice(entries, func(i, j int) bool { return entries[i].modTime.Before(entries[j].modTime) })
 
-	protected := 0
-	if r.MinRetain > 0 && len(entries) > r.MinRetain {
-		protected = len(entries) - r.MinRetain
-	} else if r.MinRetain > 0 {
-		protected = 0
-	} else {
-		protected = len(entries)
+	// Bundles are ordered oldest first, so the newest MinRetain entries are the
+	// tail of the slice. deletable is the count at the head that policy may
+	// remove; when MinRetain exceeds the number of bundles, nothing is.
+	deletable := len(entries) - r.MinRetain
+	if r.MinRetain <= 0 {
+		deletable = len(entries)
+	}
+	if deletable < 0 {
+		deletable = 0
 	}
 
 	var remaining []bundleEntry
@@ -80,9 +82,9 @@ func (r *Retention) Sweep() (SweepResult, error) {
 		res.BytesInUse += e.size
 
 		expired := r.MaxAge > 0 && now().Sub(e.modTime) > r.MaxAge
-		deletable := i < protected
+		mayDelete := i < deletable
 
-		if expired && deletable {
+		if expired && mayDelete {
 			if err := r.remove(e, fmt.Sprintf("age exceeded retention of %s", r.MaxAge)); err != nil {
 				res.Errors = append(res.Errors, err.Error())
 				remaining = append(remaining, e)

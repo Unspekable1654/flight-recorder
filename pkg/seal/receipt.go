@@ -251,7 +251,7 @@ func (r *SealReceipt) Verify(data []byte, pub *ecdsa.PublicKey) (VerificationRes
 	return res, nil
 }
 
-// MarshalJSON renders the receipt with stable, human-readable formatting.
+// MarshalIndent renders the receipt with stable, human-readable formatting.
 func (r *SealReceipt) MarshalIndent() ([]byte, error) {
 	out, err := json.MarshalIndent(r, "", "  ")
 	if err != nil {
@@ -266,6 +266,9 @@ func (r *SealReceipt) WriteFile(path string) error {
 	if err != nil {
 		return err
 	}
+	// The receipt contains hashes and metadata, never captured content. Group
+	// read is deliberate: triage must not require the decryption key.
+	// #nosec G306
 	if err := os.WriteFile(path, out, 0o640); err != nil {
 		return fmt.Errorf("seal: write receipt %s: %w", path, err)
 	}

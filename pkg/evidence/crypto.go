@@ -199,7 +199,7 @@ func newFrameReader(r io.Reader, key []byte) (*frameReader, error) {
 
 	header := make([]byte, len(EncMagic)+2)
 	if _, err := io.ReadFull(r, header); err != nil {
-		return nil, fmt.Errorf("%w: reading header: %v", ErrCorruptPayload, err)
+		return nil, fmt.Errorf("%w: reading header: %w", ErrCorruptPayload, err)
 	}
 	if string(header[:len(EncMagic)]) != EncMagic {
 		return nil, fmt.Errorf("%w: bad magic %q", ErrCorruptPayload, header[:len(EncMagic)])
@@ -214,7 +214,7 @@ func newFrameReader(r io.Reader, key []byte) (*frameReader, error) {
 
 	prefix := make([]byte, prefixLen)
 	if _, err := io.ReadFull(r, prefix); err != nil {
-		return nil, fmt.Errorf("%w: reading nonce prefix: %v", ErrCorruptPayload, err)
+		return nil, fmt.Errorf("%w: reading nonce prefix: %w", ErrCorruptPayload, err)
 	}
 
 	block, err := aes.NewCipher(key)
@@ -249,7 +249,7 @@ func (f *frameReader) readFrame() error {
 		if errors.Is(err, io.EOF) {
 			return fmt.Errorf("%w: payload ended without a terminator", ErrCorruptPayload)
 		}
-		return fmt.Errorf("%w: reading frame length: %v", ErrCorruptPayload, err)
+		return fmt.Errorf("%w: reading frame length: %w", ErrCorruptPayload, err)
 	}
 
 	length := binary.BigEndian.Uint32(lenBuf[:])
@@ -263,7 +263,7 @@ func (f *frameReader) readFrame() error {
 
 	ciphertext := make([]byte, length)
 	if _, err := io.ReadFull(f.r, ciphertext); err != nil {
-		return fmt.Errorf("%w: reading frame body: %v", ErrCorruptPayload, err)
+		return fmt.Errorf("%w: reading frame body: %w", ErrCorruptPayload, err)
 	}
 
 	nonce := make([]byte, f.aead.NonceSize())

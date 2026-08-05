@@ -128,7 +128,7 @@ func TestExitEventsPrecedeCaptureFailure(t *testing.T) {
 		return event.HostPID == pid || event.NamespacePID == pid
 	}
 
-	for !(sawExec && sawExit) {
+	for !sawExec || !sawExit {
 		select {
 		case event, ok := <-events:
 			if !ok {

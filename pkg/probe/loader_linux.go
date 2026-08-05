@@ -88,7 +88,9 @@ func Load(opts LoadOptions) (*Probe, error) {
 		if errors.As(err, &verr) {
 			// The verifier log is the only useful artefact when a program is
 			// rejected, and it is truncated by default. Print it in full.
-			return nil, fmt.Errorf("probe: eBPF verifier rejected the program: %+v", verr)
+			//nolint:errorlint // %+v is what renders the full log; the cause is
+			// wrapped alongside it so errors.Is/As still work.
+			return nil, fmt.Errorf("probe: eBPF verifier rejected the program: %+v (%w)", verr, err)
 		}
 		if errors.Is(err, unix.EPERM) {
 			return nil, fmt.Errorf("probe: loading eBPF was denied: %w (needs CAP_BPF and CAP_PERFMON on kernel 5.8+, or CAP_SYS_ADMIN on older kernels)", err)
@@ -97,19 +99,19 @@ func Load(opts LoadOptions) (*Probe, error) {
 	}
 
 	if err := p.configure(opts); err != nil {
-		p.objs.Close()
+		_ = p.objs.Close()
 		return nil, err
 	}
 
 	if err := p.attach(opts); err != nil {
-		p.objs.Close()
+		_ = p.objs.Close()
 		return nil, err
 	}
 
 	reader, err := ringbuf.NewReader(p.objs.Events)
 	if err != nil {
 		p.detach()
-		p.objs.Close()
+		_ = p.objs.Close()
 		return nil, fmt.Errorf("probe: open ring buffer reader: %w (BPF_MAP_TYPE_RINGBUF requires kernel 5.8+)", err)
 	}
 	p.reader = reader

@@ -84,7 +84,14 @@ func NewServer(cfg ServerConfig) (*Server, error) {
 
 // ListenAndServe starts the gRPC server on addr and blocks until Stop.
 func (s *Server) ListenAndServe(addr string) error {
-	lis, err := net.Listen("tcp", addr)
+	return s.ListenAndServeContext(context.Background(), addr)
+}
+
+// ListenAndServeContext starts the gRPC server, using ctx to bound the listen
+// operation itself (DNS resolution of the bind address can block).
+func (s *Server) ListenAndServeContext(ctx context.Context, addr string) error {
+	var lc net.ListenConfig
+	lis, err := lc.Listen(ctx, "tcp", addr)
 	if err != nil {
 		return fmt.Errorf("grpc: listen on %s: %w", addr, err)
 	}

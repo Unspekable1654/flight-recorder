@@ -2,6 +2,7 @@ package probe
 
 import (
 	"encoding/binary"
+	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -162,18 +163,13 @@ func TestDecodeRejectsShortRecords(t *testing.T) {
 			continue
 		}
 		var shortErr ErrShortEvent
-		if !asShortEvent(err, &shortErr) {
+		if !errors.As(err, &shortErr) {
 			t.Errorf("size %d: error type = %T", size, err)
 		}
+		if shortErr.Want != EventSize {
+			t.Errorf("size %d: error reports Want=%d", size, shortErr.Want)
+		}
 	}
-}
-
-func asShortEvent(err error, target *ErrShortEvent) bool {
-	if e, ok := err.(ErrShortEvent); ok {
-		*target = e
-		return true
-	}
-	return false
 }
 
 func TestDecodeHandlesUnterminatedStrings(t *testing.T) {

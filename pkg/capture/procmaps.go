@@ -14,6 +14,7 @@ package capture
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -194,7 +195,7 @@ func ParseProcMaps(r io.Reader) (ParseResult, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		if err == bufio.ErrTooLong {
+		if errors.Is(err, bufio.ErrTooLong) {
 			// An over-long line is data we skip, not a fatal condition.
 			res.SkippedLines++
 			return res, nil

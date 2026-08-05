@@ -112,12 +112,12 @@ func (s *Store) Watch(ctx context.Context, path string, onError func(error)) err
 
 	dir := filepath.Dir(abs)
 	if err := watcher.Add(dir); err != nil {
-		watcher.Close()
+		_ = watcher.Close()
 		return fmt.Errorf("watch config directory %s: %w", dir, err)
 	}
 
 	go func() {
-		defer watcher.Close()
+		defer func() { _ = watcher.Close() }()
 
 		const debounce = 250 * time.Millisecond
 		var timer *time.Timer

@@ -16,6 +16,8 @@ import (
 
 // Kubernetes service account mount points, fixed by the kubelet.
 const (
+	// The fixed kubelet mount PATH, not a credential.
+	// #nosec G101
 	saTokenPath     = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	saCACertPath    = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 	saNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"

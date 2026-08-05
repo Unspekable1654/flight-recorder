@@ -103,6 +103,10 @@ func NewAuditLog(opts AuditOptions) (*AuditLog, error) {
 
 	// O_APPEND makes concurrent appends atomic for reasonably sized records,
 	// which matters if an operator tails this file while it is being written.
+	// The audit log records the tool's own actions and holds no captured
+	// content. Group read is deliberate so operators can review what the
+	// recorder did without any access to the evidence itself.
+	// #nosec G302
 	f, err := os.OpenFile(opts.Path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o640)
 	if err != nil {
 		return nil, fmt.Errorf("telemetry: open audit log %s: %w", opts.Path, err)

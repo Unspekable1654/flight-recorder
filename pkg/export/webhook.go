@@ -75,7 +75,7 @@ func doWithRetry(ctx context.Context, client *http.Client, policy retryPolicy, b
 		if attempt > 0 {
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("export: aborted during backoff: %w (last error: %v)", ctx.Err(), lastErr)
+				return fmt.Errorf("export: aborted during backoff: %w (last error: %w)", ctx.Err(), lastErr)
 			case <-time.After(policy.delay(attempt - 1)):
 			}
 		}
