@@ -8,7 +8,7 @@
 # This container runs with CAP_SYS_PTRACE on every node in the cluster; an
 # attacker who reaches it should find nothing to work with.
 
-ARG GO_VERSION=1.24
+ARG GO_VERSION=1.25
 ARG DISTROLESS_TAG=nonroot
 
 # -----------------------------------------------------------------------------

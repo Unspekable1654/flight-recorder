@@ -171,7 +171,7 @@ never goes unnoticed.
 |---|---|---|---|
 | Linux kernel | 5.8 | 6.1+ | BPF ring buffer (5.8), CO-RE with BTF |
 | BTF | `/sys/kernel/btf/vmlinux` | — | CO-RE relocation, no kernel headers at runtime |
-| Go | 1.23 | 1.24+ | build only |
+| Go | **1.25** | 1.25+ | build only; the floor is set by `cilium/ebpf` v0.22 |
 | clang/LLVM | 14 | 17+ | only to modify `bpf/recorder.c` |
 | Capabilities | `SYS_PTRACE`, `BPF`, `PERFMON`, `SYS_RESOURCE` | — | acquisition, probe loading, ring buffer memory |
 
