@@ -209,9 +209,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Fetch only what the release needs. Downloading everything also pulls
+      # the multi-hundred-megabyte .dockerbuild record that build-push-action
+      # uploads, which is both pointless here and the artifact that flaked.
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: release-*
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: sbom
 
       - name: Collect artefacts
         run: |
@@ -219,6 +228,8 @@ jobs:
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.sha256' -o -name '*.json' \) \
             -exec cp {} release/ \;
           ls -la release
+          # A release with no binaries would be worse than a failed job.
+          test -n "$(ls -A release)" || { echo "error: no artefacts collected"; exit 1; }
 
       - name: Release
         uses: softprops/action-gh-release@v2
