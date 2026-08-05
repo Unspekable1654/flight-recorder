@@ -340,6 +340,7 @@ not a benchmark suite; the methodology is in
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE). Chosen over MIT for its patent grant, and
-over GPL so that enterprises can write closed SIEM and SOAR integrations
-without licensing consequences.
+Copyright 2026 Aalok. Apache 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Chosen over MIT for its patent grant, and over GPL so that enterprises can
+write closed SIEM and SOAR integrations without licensing consequences.

@@ -1,0 +1,23 @@
+Flight Recorder
+Copyright 2026 Aalok
+
+This product includes software developed by Aalok
+(https://github.com/Unspekable1654/flight-recorder).
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+---
+
+Third-party components redistributed in this repository:
+
+- bpf/include/bpf/*.h
+  libbpf BPF helper headers, vendored from https://github.com/libbpf/libbpf
+  (v1.5.0). Licensed LGPL-2.1 OR BSD-2-Clause; used here under BSD-2-Clause.
+
+- bpf/vmlinux.h
+  Generated from Linux kernel BTF with bpftool. Derived from Linux kernel
+  headers (GPL-2.0 WITH Linux-syscall-note); this is a machine-generated type
+  description used solely for CO-RE compilation.
+
+Go module dependencies are declared in go.mod and enumerated, with their
+licences, in the SBOM published with each release.
