@@ -1,0 +1,143 @@
+# Default values for flight-recorder.
+
+image:
+  repository: ghcr.io/unspekable1654/flight-recorder
+  tag: ""            # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+rbac:
+  create: true
+
+# Where evidence bundles and the audit log are written on each node.
+storage:
+  evidenceHostPath: /var/lib/flight-recorder/evidence
+  auditLogHostPath: /var/log/flight-recorder
+
+# The ECDSA signing key. Create the Secret out of band:
+#   flight-recorder keygen --key key.pem --pub pub.pem
+#   kubectl -n <ns> create secret generic flight-recorder-signing-key --from-file=key.pem
+# Leaving this unset lets the recorder generate an ephemeral key on first run,
+# which is fine for a lab and wrong for production: evidence sealed with a lost
+# key can never be verified again.
+signingKey:
+  secretName: flight-recorder-signing-key
+  key: key.pem
+
+# Runtime behaviour.
+recorder:
+  mode: trigger              # trigger | all
+  maxCapturesPerMinute: 10
+  maxCapturesPerContainerPerMinute: 3
+  maxDumpSizeMB: 512
+  maxDiskUsageMB: 1024
+  retentionDays: 90
+  redactionEnabled: false
+  kernelPrefilter: false
+  workers: 4
+  queueSize: 16
+  captureTimeout: 30s
+  shutdownGrace: 15s
+  trackExits: true
+  includeFileBacked: false
+  dryRun: false
+  logLevel: info
+  logJSON: true
+  # bpffs pin path. Pinning keeps eBPF programs attached across pod restarts,
+  # so a rolling update does not create a monitoring gap.
+  pinPath: /sys/fs/bpf/flight-recorder
+  procRoot: /host/proc
+  # Kubernetes API enrichment (pod name/namespace). Requires the RBAC above.
+  k8sEnrich: true
+  operator: ""
+
+  namespaceFilter:
+    mode: exclude
+    namespaces:
+      - kube-system
+
+  # Overrides the built-in ruleset when non-empty. See deploy/k8s/configmap.yaml
+  # for the full schema.
+  rules: []
+
+# Export targets. Only metadata, hashes and an evidence URI are sent; memory
+# dumps never leave the node.
+export:
+  webhook:
+    enabled: false
+    url: ""
+    headers: {}
+  splunk:
+    enabled: false
+    url: ""
+    token: ""
+    index: forensics
+  elastic:
+    enabled: false
+    url: ""
+    index: flight-recorder
+    apiKey: ""
+  syslog:
+    enabled: false
+    address: ""
+    network: udp        # udp | tcp | tcp+tls
+    format: rfc5424     # rfc5424 | cef
+  insecureTLS: false
+  # Prefix for evidence URIs published to the SIEM, e.g. s3://ir-evidence/node
+  uriPrefix: ""
+
+# gRPC evidence API for SOAR playbooks. Disabled by default: it discloses which
+# workloads were captured and why.
+grpc:
+  enabled: false
+  port: 9091
+
+metrics:
+  enabled: true
+  port: 9090
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+
+health:
+  port: 8080
+
+# Profiling endpoints. Off by default on a workload holding CAP_SYS_PTRACE.
+pprof:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    # Must exceed recorder.maxDumpSizeMB: the dump is held in memory while it
+    # is sealed and compressed.
+    cpu: "1"
+    memory: 1Gi
+
+# Run on every node, including tainted and control-plane ones: an attacker
+# will prefer exactly those.
+tolerations:
+  - operator: Exists
+
+nodeSelector: {}
+affinity: {}
+priorityClassName: system-node-critical
+
+podAnnotations: {}
+podLabels: {}
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1

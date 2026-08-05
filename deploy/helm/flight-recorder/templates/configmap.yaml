@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "flight-recorder.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "flight-recorder.labels" . | nindent 4 }}
+data:
+  triggers.yaml: |
+    version: "1"
+    mode: {{ .Values.recorder.mode | quote }}
+    max_captures_per_minute: {{ .Values.recorder.maxCapturesPerMinute }}
+    max_captures_per_container_per_minute: {{ .Values.recorder.maxCapturesPerContainerPerMinute }}
+    max_dump_size_mb: {{ .Values.recorder.maxDumpSizeMB }}
+    max_disk_usage_mb: {{ .Values.recorder.maxDiskUsageMB }}
+    retention_days: {{ .Values.recorder.retentionDays }}
+    redaction_enabled: {{ .Values.recorder.redactionEnabled }}
+    kernel_prefilter: {{ .Values.recorder.kernelPrefilter }}
+    rules:
+    {{- if .Values.recorder.rules }}
+      {{- toYaml .Values.recorder.rules | nindent 6 }}
+    {{- else }}
+      - name: shadow_access
+        match: "/etc/shadow"
+        severity: critical
+        mitre: T1003.008
+        description: Read of the local password hash database
+      - name: curl_pipe_sh
+        match_regex: '(curl|wget)[^|]*\|\s*(ba)?sh'
+        severity: critical
+        mitre: T1059.004
+        description: Fileless download-and-execute pipeline
+      - name: reverse_shell
+        match_regex: '/dev/tcp/|nc\s+-e|ncat\s+-e|socat.*exec'
+        severity: critical
+        mitre: T1071
+        description: Interactive reverse shell establishment
+      - name: crypto_miner
+        match_regex: '(?i)(xmrig|minerd|cpuminer|stratum\+tcp)'
+        severity: high
+        mitre: T1496
+        description: Cryptomining payload execution
+      - name: dns_exfil
+        match_regex: '(?i)(dnscat|iodine|dig\s+.*\s+txt\s)'
+        severity: high
+        mitre: T1048.003
+        description: DNS tunnelling or exfiltration tooling
+      - name: container_breakout
+        match_regex: '(?i)(nsenter|unshare\s+.*--mount|mount\s+/dev/(sd|nvme|vd))'
+        severity: critical
+        mitre: T1611
+        description: Container escape or host filesystem mount
+      - name: credential_harvest
+        match_regex: '(?i)(/var/run/secrets/kubernetes\.io|\.aws/credentials|\.kube/config)'
+        severity: high
+        mitre: T1552.001
+        description: Access to mounted service-account or cloud credentials
+    {{- end }}
+    namespace_filter:
+      mode: {{ .Values.recorder.namespaceFilter.mode | quote }}
+      namespaces:
+        {{- range .Values.recorder.namespaceFilter.namespaces }}
+        - {{ . | quote }}
+        {{- end }}
+        - {{ .Release.Namespace | quote }}

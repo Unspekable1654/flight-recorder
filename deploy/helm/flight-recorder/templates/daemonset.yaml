@@ -1,0 +1,223 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "flight-recorder.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "flight-recorder.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "flight-recorder.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    {{- toYaml .Values.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        {{- include "flight-recorder.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        # Roll the pods when the ruleset changes even though it is hot-reloaded,
+        # so that `helm upgrade` is always sufficient to converge.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.metrics.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.metrics.port | quote }}
+        prometheus.io/path: "/metrics"
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      hostPID: true
+      hostNetwork: false
+      serviceAccountName: {{ include "flight-recorder.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 60
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: flight-recorder
+          image: {{ include "flight-recorder.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - start
+            - --config=/etc/flight-recorder/triggers.yaml
+            - --output=/var/lib/flight-recorder/evidence
+            - --key=/etc/flight-recorder/keys/{{ .Values.signingKey.key }}
+            - --audit-log=/var/log/flight-recorder/audit.jsonl
+            - --proc-root={{ .Values.recorder.procRoot }}
+            - --pin-path={{ .Values.recorder.pinPath }}
+            - --workers={{ .Values.recorder.workers }}
+            - --queue-size={{ .Values.recorder.queueSize }}
+            - --capture-timeout={{ .Values.recorder.captureTimeout }}
+            - --shutdown-grace={{ .Values.recorder.shutdownGrace }}
+            - --track-exits={{ .Values.recorder.trackExits }}
+            - --include-file-backed={{ .Values.recorder.includeFileBacked }}
+            - --k8s-enrich={{ .Values.recorder.k8sEnrich }}
+            - --log-level={{ .Values.recorder.logLevel }}
+            {{- if .Values.recorder.logJSON }}
+            - --log-json
+            {{- end }}
+            {{- if .Values.recorder.dryRun }}
+            - --dry-run
+            {{- end }}
+            {{- if .Values.recorder.redactionEnabled }}
+            - --redact
+            {{- end }}
+            {{- with .Values.recorder.operator }}
+            - --operator={{ . }}
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - --metrics-addr=:{{ .Values.metrics.port }}
+            {{- else }}
+            - --metrics-addr=
+            {{- end }}
+            - --health-addr=:{{ .Values.health.port }}
+            {{- if .Values.pprof.enabled }}
+            - --pprof
+            {{- end }}
+            {{- if .Values.grpc.enabled }}
+            - --grpc-addr=:{{ .Values.grpc.port }}
+            {{- end }}
+            {{- if .Values.export.webhook.enabled }}
+            - --siem-webhook={{ .Values.export.webhook.url }}
+            {{- range $name, $value := .Values.export.webhook.headers }}
+            - --webhook-header={{ $name }}: {{ $value }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.export.splunk.enabled }}
+            - --splunk-hec-url={{ .Values.export.splunk.url }}
+            - --splunk-hec-token={{ .Values.export.splunk.token }}
+            - --splunk-index={{ .Values.export.splunk.index }}
+            {{- end }}
+            {{- if .Values.export.elastic.enabled }}
+            - --elastic-url={{ .Values.export.elastic.url }}
+            - --elastic-index={{ .Values.export.elastic.index }}
+            {{- with .Values.export.elastic.apiKey }}
+            - --elastic-api-key={{ . }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.export.syslog.enabled }}
+            - --syslog-addr={{ .Values.export.syslog.address }}
+            - --syslog-network={{ .Values.export.syslog.network }}
+            - --syslog-format={{ .Values.export.syslog.format }}
+            {{- end }}
+            {{- if .Values.export.insecureTLS }}
+            - --export-insecure-tls
+            {{- end }}
+            {{- with .Values.export.uriPrefix }}
+            - --evidence-uri-prefix={{ . }}
+            {{- end }}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            privileged: false
+            runAsUser: 0
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["SYS_PTRACE", "BPF", "PERFMON", "SYS_RESOURCE"]
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            {{- if .Values.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+            {{- end }}
+            - name: health
+              containerPort: {{ .Values.health.port }}
+            {{- if .Values.grpc.enabled }}
+            - name: grpc
+              containerPort: {{ .Values.grpc.port }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: host-proc
+              mountPath: {{ .Values.recorder.procRoot }}
+              readOnly: true
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+            - name: btf
+              mountPath: /sys/kernel/btf
+              readOnly: true
+            - name: evidence
+              mountPath: /var/lib/flight-recorder/evidence
+            - name: audit-log
+              mountPath: /var/log/flight-recorder
+            - name: config
+              mountPath: /etc/flight-recorder
+              readOnly: true
+            - name: signing-key
+              mountPath: /etc/flight-recorder/keys
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: host-proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+        - name: btf
+          hostPath:
+            path: /sys/kernel/btf
+            type: Directory
+        - name: evidence
+          hostPath:
+            path: {{ .Values.storage.evidenceHostPath }}
+            type: DirectoryOrCreate
+        - name: audit-log
+          hostPath:
+            path: {{ .Values.storage.auditLogHostPath }}
+            type: DirectoryOrCreate
+        - name: config
+          configMap:
+            name: {{ include "flight-recorder.fullname" . }}-config
+        - name: signing-key
+          secret:
+            secretName: {{ .Values.signingKey.secretName }}
+            defaultMode: 0400
+            optional: true
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi

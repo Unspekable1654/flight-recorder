@@ -1,0 +1,44 @@
+Flight Recorder {{ .Chart.AppVersion }} is installed in namespace {{ .Release.Namespace }}.
+
+1. Confirm every node is actually being monitored. A pod that is Running but
+   NOT Ready means the eBPF programs did not attach - that node is blind:
+
+     kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/name={{ include "flight-recorder.name" . }} -o wide
+
+2. Check the probes attached and the ruleset loaded:
+
+     kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/name={{ include "flight-recorder.name" . }} --tail=50
+
+{{- if not .Values.signingKey.secretName }}
+
+3. WARNING: no signing key Secret is configured. The recorder will generate an
+   ephemeral key per pod. Evidence sealed with a key that is then lost can
+   never be verified or decrypted again. Create one before relying on this:
+
+     flight-recorder keygen --key key.pem --pub pub.pem
+     kubectl -n {{ .Release.Namespace }} create secret generic {{ .Values.signingKey.secretName | default "flight-recorder-signing-key" }} --from-file=key.pem
+{{- else }}
+
+3. Signing key Secret: {{ .Values.signingKey.secretName }}
+   Back it up. Evidence sealed with a lost key cannot be verified or decrypted.
+{{- end }}
+
+4. Trigger a capture and read the result (test namespace only):
+
+     kubectl run fr-test --image=busybox --restart=Never -- sh -c "cat /etc/shadow; sleep 5"
+     kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/name={{ include "flight-recorder.name" . }} | grep "evidence sealed"
+
+5. Verify a bundle on the node that produced it:
+
+     flight-recorder verify --bundle {{ .Values.storage.evidenceHostPath }}/<case-id> --key key.pem
+
+{{- if .Values.recorder.dryRun }}
+
+NOTE: dry-run mode is enabled. Rules are evaluated and logged, but NO process
+memory is read and NO evidence is produced.
+{{- end }}
+{{- if eq .Values.recorder.mode "all" }}
+
+NOTE: mode is "all". Every execve in monitored namespaces is captured. Expect
+substantially higher CPU and disk use than trigger mode.
+{{- end }}

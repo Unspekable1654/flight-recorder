@@ -1,9 +1,14 @@
-# Build output
+# Build output.
+#
+# These patterns are anchored with a leading slash on purpose. An unanchored
+# "flight-recorder" would also match the directories cmd/flight-recorder and
+# deploy/helm/flight-recorder, silently excluding the entire CLI and Helm chart
+# from the repository.
 /bin/
 /dist/
 *.exe
-flight-recorder
-flight-recorder-linux-*
+/flight-recorder
+/flight-recorder-linux-*
 
 # Coverage and profiling
 coverage.out

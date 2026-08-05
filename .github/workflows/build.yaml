@@ -92,9 +92,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - uses: golangci/golangci-lint-action@v6
+      # v8 of the action is required for the v2 configuration schema in
+      # .golangci.yml; v6 resolves to golangci-lint 1.x, which cannot read it.
+      - uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
+          version: v2.1.6
           args: --timeout=5m
 
   # ---------------------------------------------------------------------------

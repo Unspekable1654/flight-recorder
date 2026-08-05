@@ -1,0 +1,20 @@
+apiVersion: v2
+name: flight-recorder
+description: Forensic preservation for ephemeral compute - eBPF-triggered memory capture with cryptographic sealing and CASE/UCO export
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - security
+  - forensics
+  - ebpf
+  - incident-response
+  - dfir
+home: https://github.com/Unspekable1654/flight-recorder
+sources:
+  - https://github.com/Unspekable1654/flight-recorder
+maintainers:
+  - name: Unspekable1654
+    url: https://github.com/Unspekable1654
+annotations:
+  category: Security
