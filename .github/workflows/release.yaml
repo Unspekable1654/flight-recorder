@@ -139,6 +139,14 @@ jobs:
 
       - uses: sigstore/cosign-installer@v3
 
+      - name: Normalise the image reference
+        id: ref
+        run: |
+          # OCI references must be lowercase, but github.repository preserves
+          # the owner's capitalisation. docker/metadata-action normalises its
+          # own tags, which is why the push succeeds and only signing breaks.
+          echo "image=$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Sign the image (keyless)
         env:
           COSIGN_EXPERIMENTAL: "1"
@@ -147,12 +155,12 @@ jobs:
           # signature proves this image came from this workflow, from this
           # commit, and is recorded in the Rekor transparency log.
           cosign sign --yes \
-            "${REGISTRY}/${IMAGE_NAME}@${{ steps.push.outputs.digest }}"
+            "${{ steps.ref.outputs.image }}@${{ steps.push.outputs.digest }}"
 
       - name: Attest build provenance (SLSA)
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ steps.ref.outputs.image }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
@@ -271,5 +279,5 @@ jobs:
             --version "$VERSION" --app-version "$VERSION"
           echo "${{ secrets.GITHUB_TOKEN }}" | \
             helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-          helm push "flight-recorder-${VERSION}.tgz" \
-            "oci://${{ env.REGISTRY }}/${{ github.repository }}/charts"
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          helm push "flight-recorder-${VERSION}.tgz" "oci://${REGISTRY}/${REPO_LC}/charts"
