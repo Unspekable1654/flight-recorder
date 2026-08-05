@@ -1,0 +1,102 @@
+# Trigger ruleset.
+#
+# This ConfigMap is hot-reloaded: edit it and the running DaemonSet picks up
+# the change within a second, with no restart and no monitoring gap. A ruleset
+# that fails validation is REJECTED and the previous one stays active, so a bad
+# push degrades to "no change" rather than "no monitoring".
+#
+# Validate before applying:
+#   flight-recorder rules validate --config triggers.yaml
+#   flight-recorder rules test --config triggers.yaml --cmdline "/usr/bin/cat /etc/shadow"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flight-recorder-config
+  namespace: flight-recorder
+  labels:
+    app.kubernetes.io/name: flight-recorder
+data:
+  triggers.yaml: |
+    version: "1"
+
+    # "trigger" captures only matching executions (production default).
+    # "all" captures every execve in monitored namespaces - use during an
+    # active incident, at roughly 5% CPU instead of under 2%.
+    mode: trigger
+
+    # Anti-DoS limits. An attacker who knows this tool is running can execute
+    # trigger commands in a loop to exhaust disk and CPU; these caps make that
+    # attack bounded and visible in the metrics rather than fatal to the node.
+    max_captures_per_minute: 10
+    max_captures_per_container_per_minute: 3
+
+    # A single capture may not exceed this. Must stay below the container's
+    # memory limit: the dump is held in RAM while it is sealed.
+    max_dump_size_mb: 512
+
+    # The recorder stops capturing and alerts rather than filling the node's
+    # disk. A full node disk takes down every workload on it, not just this one.
+    max_disk_usage_mb: 1024
+
+    retention_days: 90
+
+    # Off by default: redaction rewrites the bytes BEFORE sealing, so the
+    # Merkle root then describes the redacted artefact, not the original
+    # process memory. Enable only where regulation requires it.
+    redaction_enabled: false
+
+    # Kernel-side comm prefilter. Only effective when every rule specifies a
+    # comm; otherwise it is ignored, because dropping events in the kernel that
+    # a regex rule needed to see would create a silent blind spot.
+    kernel_prefilter: false
+
+    rules:
+      - name: shadow_access
+        match: "/etc/shadow"
+        severity: critical
+        mitre: T1003.008
+        description: Read of the local password hash database
+
+      - name: curl_pipe_sh
+        match_regex: '(curl|wget)[^|]*\|\s*(ba)?sh'
+        severity: critical
+        mitre: T1059.004
+        description: Fileless download-and-execute pipeline
+
+      - name: reverse_shell
+        match_regex: '/dev/tcp/|nc\s+-e|ncat\s+-e|socat.*exec'
+        severity: critical
+        mitre: T1071
+        description: Interactive reverse shell establishment
+
+      - name: crypto_miner
+        match_regex: '(?i)(xmrig|minerd|cpuminer|stratum\+tcp)'
+        severity: high
+        mitre: T1496
+        description: Cryptomining payload execution
+
+      - name: dns_exfil
+        match_regex: '(?i)(dnscat|iodine|dig\s+.*\s+txt\s)'
+        severity: high
+        mitre: T1048.003
+        description: DNS tunnelling or exfiltration tooling
+
+      - name: container_breakout
+        match_regex: '(?i)(nsenter|unshare\s+.*--mount|mount\s+/dev/(sd|nvme|vd))'
+        severity: critical
+        mitre: T1611
+        description: Container escape or host filesystem mount
+
+      - name: credential_harvest
+        match_regex: '(?i)(/var/run/secrets/kubernetes\.io|\.aws/credentials|\.kube/config)'
+        severity: high
+        mitre: T1552.001
+        description: Access to mounted service-account or cloud credentials
+
+    namespace_filter:
+      # "exclude" watches everything except the listed namespaces.
+      # "include" watches only the listed namespaces.
+      mode: exclude
+      namespaces:
+        - kube-system
+        - flight-recorder   # never capture ourselves

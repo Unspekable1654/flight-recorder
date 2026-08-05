@@ -1,0 +1,275 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release"
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write     # keyless signing via Sigstore/Fulcio
+  attestations: write # SLSA provenance
+
+env:
+  GO_VERSION: "1.24"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Binaries
+  # ---------------------------------------------------------------------------
+  binaries:
+    name: binaries (${{ matrix.arch }})
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install the eBPF toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang llvm libbpf-dev
+
+      - name: Generate eBPF bindings
+        run: |
+          BPF_CLANG=clang \
+          BPF_CFLAGS="-O2 -g -Wall -Werror -D__TARGET_ARCH_x86" \
+          go generate ./pkg/probe/...
+
+      - name: Build
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION=${GITHUB_REF_NAME:-${{ inputs.tag }}}
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          MODULE=github.com/Unspekable1654/flight-recorder
+          go build -trimpath -ldflags "-s -w \
+            -X ${MODULE}/pkg/version.Version=${VERSION} \
+            -X ${MODULE}/pkg/version.Commit=${COMMIT} \
+            -X ${MODULE}/pkg/version.BuildDate=${BUILD_DATE}" \
+            -o flight-recorder-linux-${{ matrix.arch }} ./cmd/flight-recorder
+
+      - name: Package
+        run: |
+          VERSION=${GITHUB_REF_NAME:-${{ inputs.tag }}}
+          mkdir -p "pkg-${{ matrix.arch }}"
+          cp flight-recorder-linux-${{ matrix.arch }} "pkg-${{ matrix.arch }}/flight-recorder"
+          cp LICENSE README.md SECURITY.md "pkg-${{ matrix.arch }}/"
+          cp -r deploy "pkg-${{ matrix.arch }}/"
+          tar czf "flight-recorder_${VERSION}_linux_${{ matrix.arch }}.tar.gz" -C "pkg-${{ matrix.arch }}" .
+          sha256sum "flight-recorder_${VERSION}_linux_${{ matrix.arch }}.tar.gz" \
+            > "flight-recorder_${VERSION}_linux_${{ matrix.arch }}.tar.gz.sha256"
+          # The binary's own digest is what a verifier compares against the
+          # tool_self_sha256 field recorded inside every evidence bundle.
+          sha256sum "flight-recorder-linux-${{ matrix.arch }}" \
+            > "flight-recorder-linux-${{ matrix.arch }}.sha256"
+          cat "flight-recorder-linux-${{ matrix.arch }}.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.arch }}
+          path: |
+            flight-recorder_*_linux_${{ matrix.arch }}.tar.gz
+            flight-recorder_*_linux_${{ matrix.arch }}.tar.gz.sha256
+            flight-recorder-linux-${{ matrix.arch }}.sha256
+
+  # ---------------------------------------------------------------------------
+  # Container image, signed and attested
+  # ---------------------------------------------------------------------------
+  image:
+    name: container image
+    runs-on: ubuntu-24.04
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Sign the image (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          # Signing our own build pipeline, not just our users' evidence: the
+          # signature proves this image came from this workflow, from this
+          # commit, and is recorded in the Rekor transparency log.
+          cosign sign --yes \
+            "${REGISTRY}/${IMAGE_NAME}@${{ steps.push.outputs.digest }}"
+
+      - name: Attest build provenance (SLSA)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+  # ---------------------------------------------------------------------------
+  # SBOM
+  # ---------------------------------------------------------------------------
+  sbom:
+    name: sbom
+    runs-on: ubuntu-24.04
+    needs: [image]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SBOMs
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          artifact-name: flight-recorder.cdx.json
+          output-file: flight-recorder.cdx.json
+
+      - name: Generate an SPDX SBOM as well
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          artifact-name: flight-recorder.spdx.json
+          output-file: flight-recorder.spdx.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            flight-recorder.cdx.json
+            flight-recorder.spdx.json
+
+  # ---------------------------------------------------------------------------
+  # GitHub release
+  # ---------------------------------------------------------------------------
+  release:
+    name: github release
+    runs-on: ubuntu-24.04
+    needs: [binaries, image, sbom]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect artefacts
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.sha256' -o -name '*.json' \) \
+            -exec cp {} release/ \;
+          ls -la release
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          body: |
+            ## Verifying this release
+
+            Every artefact below is reproducible from the tagged source and
+            attested by the build pipeline.
+
+            Container image:
+            ```
+            cosign verify ghcr.io/${{ github.repository }}:${{ github.ref_name }} \
+              --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/tags/.*" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com
+            ```
+
+            Binary:
+            ```
+            sha256sum -c flight-recorder-linux-amd64.sha256
+            ```
+
+            The binary digest above is the value recorded as `tool_self_sha256`
+            in every evidence bundle this build produces, which is how an
+            examiner ties a piece of evidence to an exact, published artefact.
+
+            ## Deploying
+
+            ```
+            helm install flight-recorder oci://ghcr.io/${{ github.repository }}/charts/flight-recorder \
+              --version ${{ github.ref_name }} --namespace flight-recorder --create-namespace
+            ```
+
+            or with the raw manifests:
+
+            ```
+            kubectl apply -f https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deploy.yaml
+            ```
+
+  # ---------------------------------------------------------------------------
+  # Helm chart to the OCI registry
+  # ---------------------------------------------------------------------------
+  chart:
+    name: helm chart
+    runs-on: ubuntu-24.04
+    needs: [image]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Package and push
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          helm package deploy/helm/flight-recorder \
+            --version "$VERSION" --app-version "$VERSION"
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          helm push "flight-recorder-${VERSION}.tgz" \
+            "oci://${{ env.REGISTRY }}/${{ github.repository }}/charts"

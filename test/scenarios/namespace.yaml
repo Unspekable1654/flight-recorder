@@ -1,0 +1,47 @@
+# Lab namespaces for adversary emulation.
+#
+# The victim namespace is the only one Flight Recorder needs to watch for these
+# scenarios. Keeping the simulations in a dedicated namespace means a
+# misconfigured rule cannot start capturing production workloads by accident.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: victim
+  labels:
+    app.kubernetes.io/part-of: flight-recorder-lab
+    purpose: adversary-emulation
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: adversary
+  labels:
+    app.kubernetes.io/part-of: flight-recorder-lab
+    purpose: adversary-emulation
+---
+# Deny all egress from the victim namespace by default.
+#
+# The simulations point at IETF documentation addresses that route nowhere, but
+# relying on that alone would be careless: a typo in a scenario should fail
+# closed, not reach the internet from inside a cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: victim-default-deny-egress
+  namespace: victim
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS only, and only to the cluster resolver, so the exfiltration scenario
+    # can still generate a query without being able to leave the cluster.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

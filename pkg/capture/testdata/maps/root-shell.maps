@@ -1,0 +1,57 @@
+5669c3730000-5669c3734000 r--p 00000000 08:30 49512                      /usr/bin/cp
+5669c3734000-5669c374c000 r-xp 00004000 08:30 49512                      /usr/bin/cp
+5669c374c000-5669c3752000 r--p 0001c000 08:30 49512                      /usr/bin/cp
+5669c3752000-5669c3753000 r--p 00021000 08:30 49512                      /usr/bin/cp
+5669c3753000-5669c3754000 rw-p 00022000 08:30 49512                      /usr/bin/cp
+5669ea3ab000-5669ea3cc000 rw-p 00000000 00:00 0                          [heap]
+796b63c00000-796b63c28000 r--p 00000000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+796b63c28000-796b63db0000 r-xp 00028000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+796b63db0000-796b63dff000 r--p 001b0000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+796b63dff000-796b63e03000 r--p 001fe000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+796b63e03000-796b63e05000 rw-p 00202000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+796b63e05000-796b63e12000 rw-p 00000000 00:00 0 
+796b63e30000-796b63e52000 rw-p 00000000 00:00 0 
+796b63e52000-796b63eab000 r--p 00000000 08:30 1807                       /usr/lib/locale/C.utf8/LC_CTYPE
+796b63eab000-796b63eac000 r--p 00000000 08:30 1861                       /usr/lib/locale/C.utf8/LC_NUMERIC
+796b63eac000-796b63ead000 r--p 00000000 08:30 1868                       /usr/lib/locale/C.utf8/LC_TIME
+796b63ead000-796b63eae000 r--p 00000000 08:30 1805                       /usr/lib/locale/C.utf8/LC_COLLATE
+796b63eae000-796b63eaf000 r--p 00000000 08:30 1843                       /usr/lib/locale/C.utf8/LC_MONETARY
+796b63eaf000-796b63eb0000 r--p 00000000 08:30 1841                       /usr/lib/locale/C.utf8/LC_MESSAGES/SYS_LC_MESSAGES
+796b63eb0000-796b63eb1000 r--p 00000000 08:30 1863                       /usr/lib/locale/C.utf8/LC_PAPER
+796b63eb1000-796b63eb8000 r--s 00000000 08:30 110578                     /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
+796b63eb8000-796b63ebc000 rw-p 00000000 00:00 0 
+796b63ebc000-796b63ebe000 r--p 00000000 08:30 13002                      /usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.11.2
+796b63ebe000-796b63f2c000 r-xp 00002000 08:30 13002                      /usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.11.2
+796b63f2c000-796b63f54000 r--p 00070000 08:30 13002                      /usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.11.2
+796b63f54000-796b63f55000 r--p 00097000 08:30 13002                      /usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.11.2
+796b63f55000-796b63f56000 rw-p 00098000 08:30 13002                      /usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.11.2
+796b63f56000-796b63f58000 r--p 00000000 08:30 12724                      /usr/lib/x86_64-linux-gnu/libattr.so.1.1.2502
+796b63f58000-796b63f5b000 r-xp 00002000 08:30 12724                      /usr/lib/x86_64-linux-gnu/libattr.so.1.1.2502
+796b63f5b000-796b63f5c000 r--p 00005000 08:30 12724                      /usr/lib/x86_64-linux-gnu/libattr.so.1.1.2502
+796b63f5c000-796b63f5d000 r--p 00005000 08:30 12724                      /usr/lib/x86_64-linux-gnu/libattr.so.1.1.2502
+796b63f5d000-796b63f5e000 rw-p 00006000 08:30 12724                      /usr/lib/x86_64-linux-gnu/libattr.so.1.1.2502
+796b63f5e000-796b63f60000 r--p 00000000 08:30 12702                      /usr/lib/x86_64-linux-gnu/libacl.so.1.1.2302
+796b63f60000-796b63f65000 r-xp 00002000 08:30 12702                      /usr/lib/x86_64-linux-gnu/libacl.so.1.1.2302
+796b63f65000-796b63f66000 r--p 00007000 08:30 12702                      /usr/lib/x86_64-linux-gnu/libacl.so.1.1.2302
+796b63f66000-796b63f67000 r--p 00008000 08:30 12702                      /usr/lib/x86_64-linux-gnu/libacl.so.1.1.2302
+796b63f67000-796b63f68000 rw-p 00009000 08:30 12702                      /usr/lib/x86_64-linux-gnu/libacl.so.1.1.2302
+796b63f68000-796b63f6e000 r--p 00000000 08:30 13037                      /usr/lib/x86_64-linux-gnu/libselinux.so.1
+796b63f6e000-796b63f8b000 r-xp 00006000 08:30 13037                      /usr/lib/x86_64-linux-gnu/libselinux.so.1
+796b63f8b000-796b63f91000 r--p 00023000 08:30 13037                      /usr/lib/x86_64-linux-gnu/libselinux.so.1
+796b63f91000-796b63f92000 r--p 00029000 08:30 13037                      /usr/lib/x86_64-linux-gnu/libselinux.so.1
+796b63f92000-796b63f93000 rw-p 0002a000 08:30 13037                      /usr/lib/x86_64-linux-gnu/libselinux.so.1
+796b63f93000-796b63f95000 rw-p 00000000 00:00 0 
+796b63f95000-796b63f96000 r--p 00000000 08:30 1845                       /usr/lib/locale/C.utf8/LC_NAME
+796b63f96000-796b63f97000 r--p 00000000 08:30 1804                       /usr/lib/locale/C.utf8/LC_ADDRESS
+796b63f97000-796b63f98000 r--p 00000000 08:30 1865                       /usr/lib/locale/C.utf8/LC_TELEPHONE
+796b63f98000-796b63f99000 r--p 00000000 08:30 1833                       /usr/lib/locale/C.utf8/LC_MEASUREMENT
+796b63f99000-796b63f9a000 r--p 00000000 08:30 1829                       /usr/lib/locale/C.utf8/LC_IDENTIFICATION
+796b63f9a000-796b63f9c000 rw-p 00000000 00:00 0 
+796b63f9c000-796b63f9d000 r--p 00000000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+796b63f9d000-796b63fc8000 r-xp 00001000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+796b63fc8000-796b63fd2000 r--p 0002c000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+796b63fd2000-796b63fd4000 r--p 00036000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+796b63fd4000-796b63fd6000 rw-p 00038000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+7fff5cf32000-7fff5cf53000 rw-p 00000000 00:00 0                          [stack]
+7fff5cf5b000-7fff5cf5f000 r--p 00000000 00:00 0                          [vvar]
+7fff5cf5f000-7fff5cf61000 r-xp 00000000 00:00 0                          [vdso]

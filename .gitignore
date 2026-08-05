@@ -1,0 +1,44 @@
+# Build output
+/bin/
+/dist/
+*.exe
+flight-recorder
+flight-recorder-linux-*
+
+# Coverage and profiling
+coverage.out
+coverage.html
+*.prof
+*.pprof
+*.test
+
+# SBOM
+sbom.cdx.json
+sbom.spdx.json
+
+# Evidence and keys must never be committed. A memory dump routinely contains
+# credentials and personal data; a signing key would let anyone forge evidence.
+/evidence/
+*.pem
+*.key
+dump.bin*
+receipt.json
+metadata.jsonld
+manifest.json
+audit.jsonl
+
+# Local scratch
+/tmp/
+*.local
+.env
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Note on generated eBPF artefacts: pkg/probe/recorder_bpfel.go and
+# recorder_bpfel.o ARE committed on purpose, so that `go build` works without a
+# clang toolchain. Only regenerate them with `make generate`.

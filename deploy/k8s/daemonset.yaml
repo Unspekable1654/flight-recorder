@@ -1,0 +1,212 @@
+# Flight Recorder DaemonSet.
+#
+# This workload is privileged by necessity: it loads eBPF programs and reads
+# other processes' memory. Every capability it holds is listed below with the
+# reason it is required, and nothing beyond that list is granted. A reviewer
+# should be able to object to any single line here on its own terms.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flight-recorder
+  labels:
+    app.kubernetes.io/name: flight-recorder
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: flight-recorder
+  namespace: flight-recorder
+  labels:
+    app.kubernetes.io/name: flight-recorder
+    app.kubernetes.io/component: forensic-capture
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flight-recorder
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # One node at a time. eBPF programs are pinned to bpffs, so a restarting
+      # pod re-attaches to the running programs and no events are missed, but
+      # updating every node simultaneously would still be reckless on a tool
+      # that holds CAP_SYS_PTRACE.
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flight-recorder
+        app.kubernetes.io/component: forensic-capture
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # REQUIRED. eBPF reports PIDs in the host namespace; without this the
+      # recorder cannot resolve or read any of them.
+      hostPID: true
+      # NOT required. The recorder only talks to the API server and the
+      # configured SIEM, both reachable from the pod network.
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      serviceAccountName: flight-recorder
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 60
+      tolerations:
+        # Evidence preservation must run everywhere, including tainted and
+        # control-plane nodes: an attacker will prefer exactly those.
+        - operator: Exists
+      containers:
+        - name: flight-recorder
+          image: ghcr.io/unspekable1654/flight-recorder:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - start
+            - --config=/etc/flight-recorder/triggers.yaml
+            - --output=/var/lib/flight-recorder/evidence
+            - --key=/etc/flight-recorder/keys/key.pem
+            - --audit-log=/var/log/flight-recorder/audit.jsonl
+            - --proc-root=/host/proc
+            - --pin-path=/sys/fs/bpf/flight-recorder
+            - --metrics-addr=:9090
+            - --health-addr=:8080
+            - --log-json
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          securityContext:
+            # Not fully privileged: the specific capabilities below are enough,
+            # and "privileged: true" would also grant device access, which this
+            # workload has no business having.
+            privileged: false
+            runAsUser: 0
+            runAsNonRoot: false
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add:
+                - SYS_PTRACE  # process_vm_readv against other processes
+                - BPF         # bpf() syscall (kernel 5.8+)
+                - PERFMON     # attaching to tracepoints (kernel 5.8+)
+                - SYS_RESOURCE # raise RLIMIT_MEMLOCK for the 16 MB ring buffer
+                # On kernels older than 5.8, replace BPF+PERFMON with SYS_ADMIN.
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: health
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            # Reports NotReady when the eBPF programs are not attached, which
+            # is the only way an operator learns that a node is unmonitored
+            # while the process itself looks perfectly healthy.
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 2
+          volumeMounts:
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+              # Not read-only: pinning programs and links requires writing here.
+            - name: btf
+              mountPath: /sys/kernel/btf
+              readOnly: true
+            - name: evidence
+              mountPath: /var/lib/flight-recorder/evidence
+            - name: audit-log
+              mountPath: /var/log/flight-recorder
+            - name: config
+              mountPath: /etc/flight-recorder
+              readOnly: true
+            - name: signing-key
+              mountPath: /etc/flight-recorder/keys
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              # The memory limit must exceed the largest dump the recorder is
+              # allowed to hold. With max_dump_size_mb: 512 in the ConfigMap
+              # this limit WILL be hit; either raise it or lower the cap. The
+              # default configuration ships with a 512 MB cap and a 1 Gi limit
+              # for that reason.
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: host-proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+        - name: btf
+          hostPath:
+            path: /sys/kernel/btf
+            type: Directory
+        - name: evidence
+          hostPath:
+            path: /var/lib/flight-recorder/evidence
+            type: DirectoryOrCreate
+        - name: audit-log
+          hostPath:
+            path: /var/log/flight-recorder
+            type: DirectoryOrCreate
+        - name: config
+          configMap:
+            name: flight-recorder-config
+        - name: signing-key
+          secret:
+            secretName: flight-recorder-signing-key
+            defaultMode: 0400
+            optional: true  # generated on first run if absent
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flight-recorder-metrics
+  namespace: flight-recorder
+  labels:
+    app.kubernetes.io/name: flight-recorder
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: flight-recorder
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics

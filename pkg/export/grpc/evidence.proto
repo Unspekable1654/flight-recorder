@@ -1,0 +1,122 @@
+// Flight Recorder evidence API.
+//
+// The API is pull-based and metadata-first: a SOAR playbook asks what evidence
+// exists, retrieves its metadata and verification status, and only then decides
+// whether to fetch the sealed payload. Memory dumps are never pushed.
+syntax = "proto3";
+
+package flightrecorder.v1;
+
+option go_package = "github.com/Unspekable1654/flight-recorder/pkg/export/grpc;evidencepb";
+
+// EvidenceService exposes stored evidence bundles and a live event stream.
+service EvidenceService {
+  // ListEvidence enumerates locally stored bundles, newest first.
+  rpc ListEvidence(ListEvidenceRequest) returns (ListEvidenceResponse);
+
+  // GetEvidence returns the metadata, receipt and CASE/UCO bundle for one case.
+  rpc GetEvidence(EvidenceRequest) returns (EvidenceResponse);
+
+  // VerifyEvidence re-derives the Merkle root and checks the signature.
+  rpc VerifyEvidence(VerifyRequest) returns (VerifyResponse);
+
+  // StreamEvents pushes a notification for every capture as it completes.
+  rpc StreamEvents(StreamRequest) returns (stream EventNotification);
+}
+
+message ListEvidenceRequest {
+  // Maximum bundles to return. 0 means the server default (100).
+  uint32 limit = 1;
+  // Only return bundles created at or after this Unix timestamp (seconds).
+  int64 since_unix = 2;
+}
+
+message ListEvidenceResponse {
+  repeated EvidenceSummary bundles = 1;
+  uint32 total = 2;
+}
+
+message EvidenceSummary {
+  string case_id = 1;
+  int64 created_at_unix = 2;
+  string rule = 3;
+  string severity = 4;
+  string pod_name = 5;
+  string pod_namespace = 6;
+  string container_id = 7;
+  int64 dump_size_bytes = 8;
+  string merkle_root = 9;
+  string capture_status = 10;
+  string classification = 11;
+}
+
+message EvidenceRequest {
+  string case_id = 1;
+  // Include the full CASE/UCO JSON-LD document in the response.
+  bool include_case_bundle = 2;
+  // Include the signed receipt JSON in the response.
+  bool include_receipt = 3;
+}
+
+message EvidenceResponse {
+  EvidenceSummary summary = 1;
+  // Raw CASE/UCO JSON-LD bytes, present when requested.
+  bytes case_bundle = 2;
+  // Raw receipt JSON bytes, present when requested.
+  bytes receipt = 3;
+  // Local filesystem path of the bundle directory.
+  string bundle_path = 4;
+  // Names and digests of the files in the bundle.
+  repeated BundleFile files = 5;
+}
+
+message BundleFile {
+  string name = 1;
+  int64 size_bytes = 2;
+  string sha256 = 3;
+  bool encrypted = 4;
+  string compression = 5;
+}
+
+message VerifyRequest {
+  string case_id = 1;
+}
+
+message VerifyResponse {
+  bool ok = 1;
+  bool root_matches = 2;
+  bool signature_valid = 3;
+  bool manifest_intact = 4;
+  string recomputed_root = 5;
+  repeated string errors = 6;
+}
+
+message StreamRequest {
+  // Only stream events at or above this severity (low, medium, high, critical).
+  string min_severity = 1;
+  // Only stream events from these Kubernetes namespaces. Empty means all.
+  repeated string namespaces = 2;
+}
+
+message EventNotification {
+  string case_id = 1;
+  int64 timestamp_unix_nano = 2;
+  string rule = 3;
+  string severity = 4;
+  string mitre_technique = 5;
+  string comm = 6;
+  string cmdline = 7;
+  int32 host_pid = 8;
+  int32 namespace_pid = 9;
+  string container_id = 10;
+  string pod_name = 11;
+  string pod_namespace = 12;
+  string node_name = 13;
+  int64 dump_size_bytes = 14;
+  string dump_sha256 = 15;
+  string merkle_root = 16;
+  string evidence_uri = 17;
+  string capture_status = 18;
+  double latency_ms = 19;
+  string classification = 20;
+}

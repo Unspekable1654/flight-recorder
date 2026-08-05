@@ -1,0 +1,48 @@
+# Scenario 5: container escape attempt.
+#
+# Technique: T1611. Rule: container_breakout.
+#
+# SIMULATION AND SAFETY: this pod runs UNPRIVILEGED with all capabilities
+# dropped and no host mounts. Every escape it attempts therefore fails - which
+# is the intended outcome. The scenario tests that Flight Recorder captures the
+# attempt, not that the attempt works.
+#
+# Do NOT add `privileged: true` or hostPath mounts to make this "work". A real
+# escape in a lab cluster is a real escape.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: container-breakout
+  namespace: victim
+  labels:
+    app.kubernetes.io/part-of: flight-recorder-lab
+    scenario: container-breakout
+  annotations:
+    flight-recorder.io/scenario: "T1611 escape to host (attempt only, expected to fail)"
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: escape
+      image: busybox:1.36
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "simulating escape attempts; all are expected to fail"
+          # 1. Enter the host namespaces (needs CAP_SYS_ADMIN - denied).
+          nsenter --target 1 --mount --uts --ipc --net /bin/sh -c id || true
+          # 2. Mount the host root device (needs CAP_SYS_ADMIN - denied).
+          mount /dev/sda1 /mnt || true
+          # 3. Look for a mounted docker socket (not mounted here).
+          ls -la /var/run/docker.sock || true
+          sleep 5
+      securityContext:
+        allowPrivilegeEscalation: false
+        privileged: false
+        runAsNonRoot: true
+        runAsUser: 1000
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests: { cpu: 10m, memory: 32Mi }
+        limits: { cpu: 200m, memory: 128Mi }

@@ -1,0 +1,91 @@
+# RBAC for Flight Recorder.
+#
+# The recorder needs exactly two things from the API server: the ability to
+# read pods so it can turn a cgroup id into "namespace/pod-name", and the
+# ability to emit Kubernetes events so a capture is visible with kubectl
+# without anyone having to read the SIEM.
+#
+# It deliberately has NO write access to workloads, secrets, or configuration.
+# A tool that reads every process's memory on every node is a high-value
+# target; the blast radius of its service account token must stay small.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flight-recorder
+  namespace: flight-recorder
+  labels:
+    app.kubernetes.io/name: flight-recorder
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flight-recorder
+  labels:
+    app.kubernetes.io/name: flight-recorder
+rules:
+  # Pod metadata enrichment: cgroup path -> pod UID -> pod name/namespace.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  # Node identity, used to scope the pod list to this node only. Listing every
+  # pod in a large cluster from every node is a reliable way to overload an
+  # API server.
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  # Surface captures as Kubernetes events on the affected pod.
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flight-recorder
+  labels:
+    app.kubernetes.io/name: flight-recorder
+subjects:
+  - kind: ServiceAccount
+    name: flight-recorder
+    namespace: flight-recorder
+roleRef:
+  kind: ClusterRole
+  name: flight-recorder
+  apiGroup: rbac.authorization.k8s.io
+---
+# The signing key lives in its own Secret so it can be managed (and rotated)
+# independently of the trigger configuration. Create it with:
+#
+#   flight-recorder keygen --key key.pem --pub pub.pem
+#   kubectl -n flight-recorder create secret generic flight-recorder-signing-key \
+#       --from-file=key.pem=key.pem
+#
+# If the Secret is absent the recorder generates a key on first start and keeps
+# it only for the lifetime of that pod's filesystem - acceptable for a lab,
+# unacceptable in production, where losing the key makes every bundle sealed
+# with it unverifiable.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flight-recorder-key-reader
+  namespace: flight-recorder
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["flight-recorder-signing-key"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flight-recorder-key-reader
+  namespace: flight-recorder
+subjects:
+  - kind: ServiceAccount
+    name: flight-recorder
+    namespace: flight-recorder
+roleRef:
+  kind: Role
+  name: flight-recorder-key-reader
+  apiGroup: rbac.authorization.k8s.io

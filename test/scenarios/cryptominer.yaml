@@ -1,0 +1,51 @@
+# Scenario 3: cryptominer execution.
+#
+# Technique: T1496. Rule: crypto_miner.
+#
+# SIMULATION: no mining software is downloaded or run. /bin/sleep is copied to
+# /tmp/.x/xmrig so that the process name and argv look like a miner to the
+# kernel probe, and a fake pool configuration (documentation domain, obviously
+# fake wallet) is held in memory. The value of the capture is that the pool URL
+# and wallet address are recoverable from the dump - the two indicators that
+# turn "a miner ran" into "this campaign, this wallet".
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cryptominer
+  namespace: victim
+  labels:
+    app.kubernetes.io/part-of: flight-recorder-lab
+    scenario: cryptominer
+  annotations:
+    flight-recorder.io/scenario: "T1496 resource hijacking"
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: miner
+      image: busybox:1.36
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          POOL="stratum+tcp://xmr.pool.example:4444"
+          WALLET="49aWJTFR2fRuBcYt3rZ8sN4zmXqPvKd1FAKEWALLETADDRESSFORTESTINGONLY"
+          mkdir -p /tmp/.x
+          cp /bin/sleep /tmp/.x/xmrig
+          echo "simulating: xmrig -o $POOL -u $WALLET"
+          /tmp/.x/xmrig 8 &
+          sleep 8
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1000
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests: { cpu: 10m, memory: 32Mi }
+        limits: { cpu: 500m, memory: 128Mi }
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: tmp
+      emptyDir: {}

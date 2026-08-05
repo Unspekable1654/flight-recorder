@@ -1,0 +1,19 @@
+# Normalise line endings. The Makefile, Dockerfile and shell snippets are
+# executed on Linux; CRLF in any of them breaks the build in ways that are
+# tedious to diagnose from a CI log.
+* text=auto eol=lf
+
+# Binary artefacts must never be line-ending converted.
+*.o binary
+*.png binary
+*.jpg binary
+*.gz binary
+
+# Generated files: collapse them in diffs and exclude from language stats.
+pkg/probe/recorder_bpfel.go linguist-generated=true
+pkg/probe/recorder_bpfel.o  linguist-generated=true
+pkg/export/grpc/*.pb.go     linguist-generated=true
+
+# Vendored third-party headers should not count as this project's code.
+bpf/vmlinux.h        linguist-vendored=true
+bpf/include/bpf/*.h  linguist-vendored=true

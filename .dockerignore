@@ -1,0 +1,14 @@
+.git
+.github
+bin
+dist
+docs
+evidence
+*.pem
+*.key
+coverage.out
+sbom.*.json
+**/*_test.go
+test/scenarios
+.vscode
+.idea

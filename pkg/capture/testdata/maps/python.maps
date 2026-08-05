@@ -1,0 +1,41 @@
+00400000-00420000 r--p 00000000 08:30 3501                               /usr/bin/python3.12
+00420000-00703000 r-xp 00020000 08:30 3501                               /usr/bin/python3.12
+00703000-00a27000 r--p 00303000 08:30 3501                               /usr/bin/python3.12
+00a27000-00a28000 r--p 00627000 08:30 3501                               /usr/bin/python3.12
+00a28000-00ba6000 rw-p 00628000 08:30 3501                               /usr/bin/python3.12
+00ba6000-00baa000 rw-p 00000000 00:00 0 
+2ab07000-2abe8000 rw-p 00000000 00:00 0                                  [heap]
+750d5d597000-750d5d7f9000 rw-p 00000000 00:00 0 
+750d5d7f9000-750d5d800000 r--s 00000000 08:30 110578                     /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
+750d5d800000-750d5d828000 r--p 00000000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+750d5d828000-750d5d9b0000 r-xp 00028000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+750d5d9b0000-750d5d9ff000 r--p 001b0000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+750d5d9ff000-750d5da03000 r--p 001fe000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+750d5da03000-750d5da05000 rw-p 00202000 08:30 110589                     /usr/lib/x86_64-linux-gnu/libc.so.6
+750d5da05000-750d5da12000 rw-p 00000000 00:00 0 
+750d5da16000-750d5da6f000 r--p 00000000 08:30 1807                       /usr/lib/locale/C.utf8/LC_CTYPE
+750d5da6f000-750d5da71000 rw-p 00000000 00:00 0 
+750d5da71000-750d5da75000 r--p 00000000 08:30 15678                      /usr/lib/x86_64-linux-gnu/libexpat.so.1.9.1
+750d5da75000-750d5da92000 r-xp 00004000 08:30 15678                      /usr/lib/x86_64-linux-gnu/libexpat.so.1.9.1
+750d5da92000-750d5da9a000 r--p 00021000 08:30 15678                      /usr/lib/x86_64-linux-gnu/libexpat.so.1.9.1
+750d5da9a000-750d5da9c000 r--p 00028000 08:30 15678                      /usr/lib/x86_64-linux-gnu/libexpat.so.1.9.1
+750d5da9c000-750d5da9d000 rw-p 0002a000 08:30 15678                      /usr/lib/x86_64-linux-gnu/libexpat.so.1.9.1
+750d5da9d000-750d5da9f000 r--p 00000000 08:30 13151                      /usr/lib/x86_64-linux-gnu/libz.so.1.3
+750d5da9f000-750d5dab1000 r-xp 00002000 08:30 13151                      /usr/lib/x86_64-linux-gnu/libz.so.1.3
+750d5dab1000-750d5dab7000 r--p 00014000 08:30 13151                      /usr/lib/x86_64-linux-gnu/libz.so.1.3
+750d5dab7000-750d5dab8000 r--p 0001a000 08:30 13151                      /usr/lib/x86_64-linux-gnu/libz.so.1.3
+750d5dab8000-750d5dab9000 rw-p 0001b000 08:30 13151                      /usr/lib/x86_64-linux-gnu/libz.so.1.3
+750d5dab9000-750d5dac9000 r--p 00000000 08:30 110592                     /usr/lib/x86_64-linux-gnu/libm.so.6
+750d5dac9000-750d5db48000 r-xp 00010000 08:30 110592                     /usr/lib/x86_64-linux-gnu/libm.so.6
+750d5db48000-750d5dba0000 r--p 0008f000 08:30 110592                     /usr/lib/x86_64-linux-gnu/libm.so.6
+750d5dba0000-750d5dba1000 r--p 000e7000 08:30 110592                     /usr/lib/x86_64-linux-gnu/libm.so.6
+750d5dba1000-750d5dba2000 rw-p 000e8000 08:30 110592                     /usr/lib/x86_64-linux-gnu/libm.so.6
+750d5dba3000-750d5dba9000 rw-p 00000000 00:00 0 
+750d5dba9000-750d5dbaa000 r--p 00000000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+750d5dbaa000-750d5dbd5000 r-xp 00001000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+750d5dbd5000-750d5dbdf000 r--p 0002c000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+750d5dbdf000-750d5dbe1000 r--p 00036000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+750d5dbe1000-750d5dbe3000 rw-p 00038000 08:30 110586                     /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+7ffd9bac2000-7ffd9bae3000 rw-p 00000000 00:00 0                          [stack]
+7ffd9bb9b000-7ffd9bb9f000 r--p 00000000 00:00 0                          [vvar]
+7ffd9bb9f000-7ffd9bba1000 r-xp 00000000 00:00 0                          [vdso]

