@@ -124,6 +124,27 @@ compile-and-regenerate check, a multi-architecture build, privileged
 integration tests, manifest validation and a container build. All of it must
 pass.
 
+## Never attach evidence to an issue or a pull request
+
+Memory dumps routinely contain credentials, tokens and personal data
+belonging to people who are not party to the discussion. The same goes for
+signing keys, which would let anyone forge evidence.
+
+Redact, or describe the problem rather than attaching the artefact. If a
+reproduction genuinely needs a dump, say so and it will be arranged privately.
+
+The one exception in this repository is `examples/demo-bundle`, whose payload
+is synthetic and whose key is a throwaway public key. CI fails the build if any
+private key material is committed.
+
+## Do not overstate what the tool proves
+
+This project produces evidence that may be relied on by someone making a
+decision about a real incident. A claim about integrity, admissibility or
+coverage that goes further than the code actually supports is treated as a
+defect, not as enthusiasm. Documenting a limitation is always preferred to
+omitting it.
+
 ## Security issues
 
 Do not open a public issue. See [SECURITY.md](SECURITY.md).

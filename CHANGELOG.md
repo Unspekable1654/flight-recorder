@@ -46,8 +46,10 @@ out explicitly, because they matter more than ordinary behaviour changes.
   `make verify-example`.
 - A project landing page published from `docs/`, and a terminal recording of
   the demo in the README.
-- Issue and pull request templates, `dependabot.yml`, `CODEOWNERS`, a code of
-  conduct and this changelog.
+- Issue and pull request templates, `dependabot.yml`, `CODEOWNERS` and this
+  changelog. CONTRIBUTING gains two rules that follow from what the tool
+  handles: never attach evidence or keys to an issue, and never claim more
+  than the code proves.
 
 ### Changed
 
