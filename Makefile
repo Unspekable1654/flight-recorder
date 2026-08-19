@@ -75,6 +75,21 @@ build-all: ## Cross-compile for linux/amd64 and linux/arm64
 	done
 	@ls -la $(OUT)
 
+.PHONY: build-cross
+build-cross: ## Cross-compile every published target, Windows and macOS included
+	@for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do \
+		goos=$${target%/*}; goarch=$${target#*/}; ext=""; \
+		if [ "$$goos" = "windows" ]; then ext=".exe"; fi; \
+		echo "building $$goos/$$goarch"; \
+		GOOS=$$goos GOARCH=$$goarch CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" \
+			-o $(OUT)/$(BINARY)-$$goos-$$goarch$$ext $(CMD) || exit 1; \
+	done
+	@ls -la $(OUT)
+
+.PHONY: verify-example
+verify-example: build ## Verify the committed sample bundle with the public key alone
+	$(OUT)/$(BINARY) verify --bundle examples/demo-bundle --key examples/demo-pub.pem
+
 .PHONY: install
 install: build ## Install to /usr/local/bin with CAP_SYS_PTRACE
 	install -m 0755 $(OUT)/$(BINARY) /usr/local/bin/$(BINARY)

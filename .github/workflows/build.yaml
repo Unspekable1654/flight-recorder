@@ -206,12 +206,99 @@ jobs:
           ./flight-recorder-linux-amd64 rules test --cmdline "/usr/bin/cat /etc/shadow"
           # The full evidence pipeline, with no kernel and no privileges.
           ./flight-recorder-linux-amd64 demo --output "${RUNNER_TEMP}/demo"
+          # The committed sample must verify with the public key alone.
+          ./flight-recorder-linux-amd64 verify --bundle examples/demo-bundle --key examples/demo-pub.pem
 
       - uses: actions/upload-artifact@v4
         with:
           name: flight-recorder-linux-${{ matrix.arch }}
           path: flight-recorder-linux-${{ matrix.arch }}
           retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # The evidence pipeline is pure userspace: it must build and run correctly on
+  # macOS and Windows, where there is no kernel to attach to. The published
+  # .exe and macOS binaries rest on this job.
+  # ---------------------------------------------------------------------------
+  cross:
+    name: cross-platform (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Unit tests
+        shell: bash
+        run: go test -count=1 ./pkg/...
+
+      - name: Build and exercise the full evidence pipeline
+        shell: bash
+        run: |
+          BIN="./flight-recorder"
+          if [ "$RUNNER_OS" = "Windows" ]; then BIN="./flight-recorder.exe"; fi
+          go build -o "$BIN" ./cmd/flight-recorder
+
+          "$BIN" version
+          "$BIN" rules test --cmdline "/usr/bin/cat /etc/shadow"
+
+          # Seal, sign, render CASE/UCO, compress, encrypt, verify, then prove
+          # that tampering is detected -- with no kernel and no privileges.
+          "$BIN" demo --output "${RUNNER_TEMP}/demo"
+
+          # --keep must leave a bundle that actually verifies. It previously
+          # ran the destructive tamper step regardless and only suppressed the
+          # warning that the bundle had been corrupted.
+          "$BIN" demo --keep --output "${RUNNER_TEMP}/keep"
+          BUNDLE=$(ls -d "${RUNNER_TEMP}"/keep/evidence/*/ | head -1)
+          "$BIN" verify --bundle "$BUNDLE" --key "${RUNNER_TEMP}/keep/demo-key.pem"
+
+          # The committed sample must verify with the public key alone. That is
+          # the position of a third-party examiner who was never given the
+          # decryption key, and it has to exit 0.
+          "$BIN" verify --bundle examples/demo-bundle --key examples/demo-pub.pem
+          "$BIN" inspect --bundle examples/demo-bundle
+
+  # ---------------------------------------------------------------------------
+  # examples/ deliberately commits an evidence bundle and a public key. No
+  # private key material may ever join it.
+  # ---------------------------------------------------------------------------
+  no-secrets:
+    name: no committed key material
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail on any committed private key
+        run: |
+          if git grep -lE -- "-----BEGIN [A-Z ]*PRIVATE KEY-----" -- . ; then
+            echo "::error::private key material is committed to this repository"
+            exit 1
+          fi
+          echo "no private key material in the tree"
+
+      - name: The shipped sample key must be a public key
+        run: |
+          head -1 examples/demo-pub.pem | grep -q "BEGIN PUBLIC KEY"
+          ! grep -q "PRIVATE" examples/demo-pub.pem
+          echo "examples/demo-pub.pem is a public key"
+
+      - name: The sample bundle must be the documented set of files
+        run: |
+          for f in manifest.json metadata.jsonld receipt.json regions.json \
+                   dump.bin.sha256 dump.bin.zst.enc; do
+            test -s "examples/demo-bundle/$f" || { echo "missing $f"; exit 1; }
+          done
+          # The payload must be encrypted, never a raw dump.
+          head -c 4 examples/demo-bundle/dump.bin.zst.enc | xxd | head -1
 
   # ---------------------------------------------------------------------------
   # Integration: real kernel, real eBPF, real process_vm_readv.

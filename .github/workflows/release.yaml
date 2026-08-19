@@ -25,11 +25,18 @@ jobs:
   # Binaries
   # ---------------------------------------------------------------------------
   binaries:
-    name: binaries (${{ matrix.arch }})
+    name: binaries (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
-        arch: [amd64, arm64]
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+          - { goos: windows, goarch: arm64 }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,12 +47,18 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      # Only the Linux builds ever attach to a kernel, so only they need the
+      # eBPF toolchain. Acquisition is Linux-only, but the evidence pipeline
+      # that seals, signs, encrypts and verifies is pure userspace and builds
+      # for macOS and Windows from the committed sources alone.
       - name: Install the eBPF toolchain
+        if: matrix.goos == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends clang llvm libbpf-dev
 
       - name: Generate eBPF bindings
+        if: matrix.goos == 'linux'
         run: |
           BPF_CLANG=clang \
           BPF_CFLAGS="-O2 -g -Wall -Werror -D__TARGET_ARCH_x86" \
@@ -53,43 +66,56 @@ jobs:
 
       - name: Build
         env:
-          GOOS: linux
-          GOARCH: ${{ matrix.arch }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
         run: |
           VERSION=${GITHUB_REF_NAME:-${{ inputs.tag }}}
           COMMIT=$(git rev-parse --short HEAD)
           BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           MODULE=github.com/Unspekable1654/flight-recorder
+          EXT=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then EXT=".exe"; fi
+          echo "EXT=${EXT}" >> "$GITHUB_ENV"
           go build -trimpath -ldflags "-s -w \
             -X ${MODULE}/pkg/version.Version=${VERSION} \
             -X ${MODULE}/pkg/version.Commit=${COMMIT} \
             -X ${MODULE}/pkg/version.BuildDate=${BUILD_DATE}" \
-            -o flight-recorder-linux-${{ matrix.arch }} ./cmd/flight-recorder
+            -o "flight-recorder-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}" ./cmd/flight-recorder
+          ls -la "flight-recorder-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
 
       - name: Package
         run: |
           VERSION=${GITHUB_REF_NAME:-${{ inputs.tag }}}
-          mkdir -p "pkg-${{ matrix.arch }}"
-          cp flight-recorder-linux-${{ matrix.arch }} "pkg-${{ matrix.arch }}/flight-recorder"
-          cp LICENSE NOTICE README.md SECURITY.md "pkg-${{ matrix.arch }}/"
-          cp -r deploy "pkg-${{ matrix.arch }}/"
-          tar czf "flight-recorder_${VERSION}_linux_${{ matrix.arch }}.tar.gz" -C "pkg-${{ matrix.arch }}" .
-          sha256sum "flight-recorder_${VERSION}_linux_${{ matrix.arch }}.tar.gz" \
-            > "flight-recorder_${VERSION}_linux_${{ matrix.arch }}.tar.gz.sha256"
+          NAME="flight-recorder-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
+          STAGE="pkg-${{ matrix.goos }}-${{ matrix.goarch }}"
+          mkdir -p "$STAGE"
+          cp "$NAME" "$STAGE/flight-recorder${EXT}"
+          cp LICENSE NOTICE README.md SECURITY.md "$STAGE/"
+          cp -r deploy "$STAGE/"
+          # The sample bundle travels with the archive so a new user can run
+          # `verify` against real output before capturing anything themselves.
+          cp -r examples "$STAGE/"
+          ARCHIVE="flight-recorder_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            (cd "$STAGE" && zip -qr "../${ARCHIVE}.zip" .)
+            ARCHIVE="${ARCHIVE}.zip"
+          else
+            tar czf "${ARCHIVE}.tar.gz" -C "$STAGE" .
+            ARCHIVE="${ARCHIVE}.tar.gz"
+          fi
+          sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
           # The binary's own digest is what a verifier compares against the
           # tool_self_sha256 field recorded inside every evidence bundle.
-          sha256sum "flight-recorder-linux-${{ matrix.arch }}" \
-            > "flight-recorder-linux-${{ matrix.arch }}.sha256"
-          cat "flight-recorder-linux-${{ matrix.arch }}.sha256"
+          sha256sum "$NAME" > "${NAME}.sha256"
+          cat "${NAME}.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.arch }}
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            flight-recorder_*_linux_${{ matrix.arch }}.tar.gz
-            flight-recorder_*_linux_${{ matrix.arch }}.tar.gz.sha256
-            flight-recorder-linux-${{ matrix.arch }}.sha256
+            flight-recorder_*_${{ matrix.goos }}_${{ matrix.goarch }}.*
+            flight-recorder-${{ matrix.goos }}-${{ matrix.goarch }}*.sha256
 
   # ---------------------------------------------------------------------------
   # Container image, signed and attested
@@ -225,11 +251,33 @@ jobs:
       - name: Collect artefacts
         run: |
           mkdir -p release
-          find artifacts -type f \( -name '*.tar.gz' -o -name '*.sha256' -o -name '*.json' \) \
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.sha256' -o -name '*.json' \) \
             -exec cp {} release/ \;
           ls -la release
           # A release with no binaries would be worse than a failed job.
           test -n "$(ls -A release)" || { echo "error: no artefacts collected"; exit 1; }
+          # Every advertised platform must actually be present.
+          for target in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64 windows_amd64 windows_arm64; do
+            ls release/ | grep -q "_${target}\." || { echo "error: no archive for ${target}"; exit 1; }
+          done
+
+      - name: Assemble the single-file Kubernetes manifest
+        run: |
+          # The release notes have always pointed at deploy.yaml; nothing built
+          # it, so that link 404'd. Concatenate the manifests in apply order.
+          {
+            echo "# Flight Recorder ${GITHUB_REF_NAME} - generated from deploy/k8s, do not edit."
+            echo "#"
+            echo "# A signing key must exist before this is applied:"
+            echo "#   kubectl -n flight-recorder create secret generic flight-recorder-signing-key --from-file=key.pem"
+            for f in deploy/k8s/rbac.yaml deploy/k8s/configmap.yaml deploy/k8s/daemonset.yaml; do
+              echo "---"
+              cat "$f"
+            done
+          } > release/deploy.yaml
+          grep -q "hostPID: true" release/deploy.yaml
+          grep -q "SYS_PTRACE" release/deploy.yaml
+          wc -l release/deploy.yaml
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -237,6 +285,40 @@ jobs:
           files: release/*
           generate_release_notes: true
           body: |
+            ## Try it in one minute, on any operating system
+
+            Download the archive for your machine below, unpack it, and run:
+
+            ```
+            flight-recorder demo
+            ```
+
+            That runs the complete evidence pipeline against a synthetic
+            capture — Merkle seal, ECDSA signature, CASE/UCO rendering,
+            zstd compression, AES-256-GCM encryption, then verification — and
+            finishes by flipping a single byte and showing verification
+            correctly fail. No kernel, no root and no cluster required, and it
+            works on Windows and macOS as well as Linux.
+
+            Live memory acquisition (`capture` and `start`) does require
+            Linux: it is built on eBPF and `process_vm_readv(2)`.
+
+            Every archive also carries `examples/`, a sealed sample bundle you
+            can verify straight away, with only the public key:
+
+            ```
+            flight-recorder verify --bundle examples/demo-bundle --key examples/demo-pub.pem
+            ```
+
+            ## Which file do I want?
+
+            | Your machine | Download |
+            |---|---|
+            | Windows | `..._windows_amd64.zip` |
+            | Mac (Apple silicon) | `..._darwin_arm64.tar.gz` |
+            | Mac (Intel) | `..._darwin_amd64.tar.gz` |
+            | Linux | `..._linux_amd64.tar.gz` |
+
             ## Verifying this release
 
             Every artefact below is reproducible from the tagged source and
