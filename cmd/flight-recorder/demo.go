@@ -146,15 +146,23 @@ live presentation it removes the "does the demo box have BPF" failure mode.`,
 			step(out, 7, "verification", report.Summary())
 
 			// ---- 5. tamper detection ------------------------------------------
-			tampered, err := tamperWithPayload(result.Written.Dir)
-			if err != nil {
-				return err
+			// The point of --keep is that the bundle survives for inspection,
+			// so the destructive step has to actually be skipped. Suppressing
+			// only the closing note would leave a corrupted bundle behind and
+			// say nothing about it, which is worse than not offering the flag.
+			if keep {
+				step(out, 8, "tamper detection", "skipped (--keep): the bundle is left pristine and verifiable")
+			} else {
+				tampered, err := tamperWithPayload(result.Written.Dir)
+				if err != nil {
+					return err
+				}
+				tamperReport, _ := evidence.VerifyBundle(result.Written.Dir, signer.Public(), signer)
+				if tamperReport != nil && tamperReport.OK() {
+					return fmt.Errorf("tamper test failed: verification still passed after modifying %s", tampered)
+				}
+				step(out, 8, "tamper detection", fmt.Sprintf("flipped one byte in %s -> verification correctly FAILED", filepath.Base(tampered)))
 			}
-			tamperReport, _ := evidence.VerifyBundle(result.Written.Dir, signer.Public(), signer)
-			if tamperReport != nil && tamperReport.OK() {
-				return fmt.Errorf("tamper test failed: verification still passed after modifying %s", tampered)
-			}
-			step(out, 8, "tamper detection", fmt.Sprintf("flipped one byte in %s -> verification correctly FAILED", filepath.Base(tampered)))
 
 			fmt.Fprintf(out, "\nmarker planted in synthetic memory: %q\n", marker)
 			fmt.Fprintf(out, "\ninspect the bundle:\n  flight-recorder inspect --bundle %s --case\n", result.Written.Dir)
@@ -172,7 +180,7 @@ live presentation it removes the "does the demo box have BPF" failure mode.`,
 	f.StringVarP(&output, "output", "o", "", "working directory (a temporary directory is used when empty)")
 	f.StringVarP(&keyPath, "key", "k", "", "signing key path (created inside --output when empty)")
 	f.IntVar(&sizeKB, "size-kb", 256, "size of the synthetic memory image")
-	f.BoolVar(&keep, "keep", false, "skip the destructive tamper-detection step")
+	f.BoolVar(&keep, "keep", false, "skip the destructive tamper-detection step and leave a verifiable bundle")
 	f.StringVar(&scenario, "scenario", "fileless", "synthetic scenario: fileless, cryptominer, reverse-shell")
 
 	return cmd
