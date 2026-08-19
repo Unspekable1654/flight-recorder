@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/Unspekable1654/flight-recorder/pkg/capture"
@@ -129,10 +130,13 @@ func SealAndStore(in SealStoreInput) (*SealStoreResult, error) {
 		NodeName:      in.NodeName,
 		KernelVersion: in.KernelVersion,
 
-		CaptureStart:   in.Dump.CaptureStart,
-		CaptureEnd:     in.Dump.CaptureEnd,
-		DumpFileName:   payloadName,
-		DumpFilePath:   fmt.Sprintf("%s/%s/%s", in.EvidenceRoot, in.CaseID, payloadName),
+		CaptureStart: in.Dump.CaptureStart,
+		CaptureEnd:   in.Dump.CaptureEnd,
+		DumpFileName: payloadName,
+		// filepath.Join, not a "%s/%s/%s" format: the evidence root is a
+		// native path, so concatenating with forward slashes produced a
+		// mixed-separator filePath in the CASE/UCO output off Linux.
+		DumpFilePath:   filepath.Join(in.EvidenceRoot, in.CaseID, payloadName),
 		DumpSizeBytes:  int64(len(in.Payload)),
 		DumpSHA256:     receipt.DumpSHA256,
 		RegionCount:    len(in.Dump.Regions),

@@ -29,7 +29,7 @@ flight-recorder verify --bundle examples/demo-bundle --key examples/demo-pub.pem
   [ OK ] signer key id
   [ OK ] CASE/UCO structure
 
-SEAL VERIFIED  c5cbd72c-9d1a-48d5-8241-0127a9d020b1
+SEAL VERIFIED  396eecab-3eb3-4baf-82ea-9d900cb86381
 ```
 
 That is exactly the position a third-party examiner is in when they are handed

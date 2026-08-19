@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "case_id": "c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
-  "created_at": "2026-08-19T06:17:01.257093Z",
+  "case_id": "396eecab-3eb3-4baf-82ea-9d900cb86381",
+  "created_at": "2026-08-19T06:37:50.1588111Z",
   "tool_name": "flight-recorder",
   "tool_version": "0.1.0-dev",
   "node_name": "demo-node",
@@ -9,16 +9,16 @@
   "encryption": {
     "algorithm": "AES-256-GCM (framed)",
     "key_derivation": "HKDF-SHA256(signing key, salt, \"flight-recorder/evidence/aes-256-gcm/v1\")",
-    "salt_hex": "12b6d1923b9edb2ddd20d9293cde8aeac51afbcb4624dd33397827144a3035f1",
+    "salt_hex": "0408d849e57f629a4608c75f0e40a31f5ba016803d95c22186966b1b51eda83f",
     "frame_size_bytes": 1048576,
-    "signer_key_id": "50aa2972032ad873617bf00d411482534061a430d11137b6b1268833c87cccc2"
+    "signer_key_id": "6fab9e07230e8cdd89d502274fa3403a09070589be196253984a8e1d5e965fef"
   },
   "files": [
     {
       "name": "dump.bin.sha256",
       "role": "digest",
       "size_bytes": 75,
-      "sha256": "fa98a03facb2771ea2dc6d0b883607c0fa0134f57683f1b7857eb776bdefc980",
+      "sha256": "f1dcc5e82922eac28582385f217ef88b8e705b20f6902a762509a717aec67acb",
       "encrypted": false,
       "description": "SHA-256 of the decrypted, decompressed payload"
     },
@@ -26,8 +26,8 @@
       "name": "dump.bin.zst.enc",
       "role": "payload",
       "size_bytes": 262205,
-      "sha256": "41ce8b2579936b5ef16e1bd5085f4096766df8976251df2bbb3c0ce134717c03",
-      "plaintext_sha256": "da764923ea139ead589648fd743d9c0c9b3a418c2e3b31f375b982e186966a6a",
+      "sha256": "80d804cd2f1e101cf48f13c607396f28325598061822127c0ae07f95cbfbbbc2",
+      "plaintext_sha256": "8094dcc62d89e4028a5f2b68e0c67c6801f3cb303a167fb73556b69b636514e6",
       "plaintext_size_bytes": 262144,
       "encrypted": true,
       "compression": "zstd-3",
@@ -36,24 +36,24 @@
     {
       "name": "metadata.jsonld",
       "role": "metadata",
-      "size_bytes": 15070,
-      "sha256": "5b7cc2869b2a6c2ede527214aaab1532a9b1a5dd114e2bbef60e8877505e62a2",
+      "size_bytes": 15084,
+      "sha256": "137a93bdaced7753cfc2adc41c1707258221d322aa1f815980a6463907172550",
       "encrypted": false,
       "description": "CASE/UCO JSON-LD evidence bundle"
     },
     {
       "name": "receipt.json",
       "role": "receipt",
-      "size_bytes": 1224,
-      "sha256": "7e355a754afd00e6f064cd6a00434534b3e7e469cb041987a5d9f3f553e7e39c",
+      "size_bytes": 1229,
+      "sha256": "bda03496a2d5f340c1d6174f3385940e4ac3db62a2fbab52fa5ef5beb0fe1e10",
       "encrypted": false,
       "description": "Signed Merkle seal receipt"
     },
     {
       "name": "regions.json",
       "role": "regions",
-      "size_bytes": 1334,
-      "sha256": "e7a85e74ca5aaffdde951d4402fcd41812e82498adedcaa2cb50df6b72cc7442",
+      "size_bytes": 1337,
+      "sha256": "3fad3375f585921f724a247c9647136ed45d52ecb170ab08cf31a15bf1851030",
       "encrypted": false,
       "description": "Memory map and per-region acquisition outcome"
     }
