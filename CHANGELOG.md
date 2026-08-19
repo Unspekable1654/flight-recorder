@@ -10,6 +10,10 @@ out explicitly, because they matter more than ordinary behaviour changes.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.1] - 2026-08-19
+
 ### Fixed
 
 - `verify` reported `FAILED` on pristine evidence when given only the public
@@ -77,5 +81,6 @@ compute.
 - Kubernetes manifests and a Helm chart, with signed container images and
   SLSA build provenance.
 
-[Unreleased]: https://github.com/Unspekable1654/flight-recorder/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Unspekable1654/flight-recorder/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Unspekable1654/flight-recorder/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Unspekable1654/flight-recorder/releases/tag/v0.1.0
