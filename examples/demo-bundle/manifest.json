@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "case_id": "c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+  "created_at": "2026-08-19T06:17:01.257093Z",
+  "tool_name": "flight-recorder",
+  "tool_version": "0.1.0-dev",
+  "node_name": "demo-node",
+  "classification": "CONFIDENTIAL",
+  "encryption": {
+    "algorithm": "AES-256-GCM (framed)",
+    "key_derivation": "HKDF-SHA256(signing key, salt, \"flight-recorder/evidence/aes-256-gcm/v1\")",
+    "salt_hex": "12b6d1923b9edb2ddd20d9293cde8aeac51afbcb4624dd33397827144a3035f1",
+    "frame_size_bytes": 1048576,
+    "signer_key_id": "50aa2972032ad873617bf00d411482534061a430d11137b6b1268833c87cccc2"
+  },
+  "files": [
+    {
+      "name": "dump.bin.sha256",
+      "role": "digest",
+      "size_bytes": 75,
+      "sha256": "fa98a03facb2771ea2dc6d0b883607c0fa0134f57683f1b7857eb776bdefc980",
+      "encrypted": false,
+      "description": "SHA-256 of the decrypted, decompressed payload"
+    },
+    {
+      "name": "dump.bin.zst.enc",
+      "role": "payload",
+      "size_bytes": 262205,
+      "sha256": "41ce8b2579936b5ef16e1bd5085f4096766df8976251df2bbb3c0ce134717c03",
+      "plaintext_sha256": "da764923ea139ead589648fd743d9c0c9b3a418c2e3b31f375b982e186966a6a",
+      "plaintext_size_bytes": 262144,
+      "encrypted": true,
+      "compression": "zstd-3",
+      "description": "Acquired process memory"
+    },
+    {
+      "name": "metadata.jsonld",
+      "role": "metadata",
+      "size_bytes": 15070,
+      "sha256": "5b7cc2869b2a6c2ede527214aaab1532a9b1a5dd114e2bbef60e8877505e62a2",
+      "encrypted": false,
+      "description": "CASE/UCO JSON-LD evidence bundle"
+    },
+    {
+      "name": "receipt.json",
+      "role": "receipt",
+      "size_bytes": 1224,
+      "sha256": "7e355a754afd00e6f064cd6a00434534b3e7e469cb041987a5d9f3f553e7e39c",
+      "encrypted": false,
+      "description": "Signed Merkle seal receipt"
+    },
+    {
+      "name": "regions.json",
+      "role": "regions",
+      "size_bytes": 1334,
+      "sha256": "e7a85e74ca5aaffdde951d4402fcd41812e82498adedcaa2cb50df6b72cc7442",
+      "encrypted": false,
+      "description": "Memory map and per-region acquisition outcome"
+    }
+  ]
+}

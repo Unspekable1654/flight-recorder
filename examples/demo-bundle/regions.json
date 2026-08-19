@@ -1,0 +1,53 @@
+{
+  "pid": 48291,
+  "namespace_pid": 1,
+  "comm": "sh",
+  "cgroup_id": 91237845,
+  "capture_start": "2026-08-19T06:17:01.058571Z",
+  "capture_end": "2026-08-19T06:17:01.238571Z",
+  "maps_parsed_at": "2026-08-19T06:17:01.060571Z",
+  "maps_to_first_read_ms": 0.8,
+  "total_bytes": 262144,
+  "outcome": "complete",
+  "parse_skipped_lines": 0,
+  "regions": [
+    {
+      "start_addr": "0x55d4f2a00000",
+      "end_addr": "0x55d4f2a30000",
+      "perms": "rw-p",
+      "pathname": "[heap]",
+      "label": "heap",
+      "status": "full",
+      "bytes_read": 196608,
+      "bytes_total": 196608,
+      "dump_offset": 0,
+      "read_time_ms": 12.4
+    },
+    {
+      "start_addr": "0x7ffd3c1e0000",
+      "end_addr": "0x7ffd3c1f0000",
+      "perms": "rw-p",
+      "pathname": "[stack]",
+      "label": "stack",
+      "status": "full",
+      "bytes_read": 65536,
+      "bytes_total": 65536,
+      "dump_offset": 196608,
+      "read_time_ms": 3.1
+    }
+  ],
+  "skipped": [
+    {
+      "start_addr": "0x7f9c2a000000",
+      "end_addr": "0x7f9c2a1f5000",
+      "perms": "r-xp",
+      "pathname": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+      "label": "libc.so.6",
+      "status": "skipped",
+      "bytes_read": 0,
+      "bytes_total": 2052096,
+      "dump_offset": 0,
+      "error": "read-only file-backed mapping excluded by filter"
+    }
+  ]
+}

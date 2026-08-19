@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flight Recorder — forensic preservation for ephemeral compute</title>
+<meta name="description" content="eBPF-triggered memory preservation for containers that do not live long enough to be investigated. Cryptographically sealed CASE/UCO evidence bundles.">
+<meta property="og:title" content="Flight Recorder">
+<meta property="og:description" content="Containers live for minutes. Alerts arrive in tens of minutes. Flight Recorder preserves the crime scene before it deletes itself.">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --border:#d0d7de; --fg:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --red:#cf222e; --amber:#9a6700; --code:#f6f8fa;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#9198a1;
+      --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922; --code:#161b22;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+  code{background:var(--code);border:1px solid var(--border);border-radius:6px;padding:.12em .4em;font-size:.88em}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:13.5px;line-height:1.55}
+  pre code{background:none;border:0;padding:0;font-size:inherit}
+  a{color:var(--accent)}
+  h1,h2,h3{line-height:1.25;letter-spacing:-.02em}
+  h2{margin-top:0;font-size:1.6rem}
+
+  header{padding:64px 0 40px;text-align:center;border-bottom:1px solid var(--border)}
+  .eyebrow{color:var(--muted);font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 14px}
+  header h1{font-size:clamp(2.2rem,6vw,3.4rem);margin:0 0 12px}
+  .tagline{font-size:clamp(1.05rem,2.5vw,1.3rem);color:var(--muted);margin:0 auto 26px;max-width:640px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+  .btn{display:inline-block;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.95rem;border:1px solid var(--border)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+  .btn.ghost{background:var(--panel);color:var(--fg)}
+  .badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .badges img{height:20px}
+
+  section{padding:52px 0;border-bottom:1px solid var(--border)}
+  .lede{font-size:1.12rem;color:var(--muted);max-width:680px}
+  .demo{margin:8px 0 6px}
+  .demo img{width:100%;height:auto;display:block;border-radius:10px;border:1px solid var(--border)}
+  .caption{color:var(--muted);font-size:.86rem;margin-top:10px}
+
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-top:26px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px}
+  .card .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;font-size:.8rem;font-weight:700;margin-bottom:10px}
+  .card h3{margin:0 0 6px;font-size:1rem}
+  .card p{margin:0;color:var(--muted);font-size:.92rem}
+
+  table{width:100%;border-collapse:collapse;margin-top:22px;font-size:.93rem}
+  th,td{border:1px solid var(--border);padding:9px 12px;text-align:left}
+  th{background:var(--panel);font-weight:600}
+  td.y{color:var(--green);font-weight:600}
+  td.n{color:var(--muted)}
+  .scroll{overflow-x:auto}
+
+  .stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:24px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center}
+  .stat b{display:block;font-size:1.5rem;color:var(--accent);letter-spacing:-.02em}
+  .stat span{color:var(--muted);font-size:.85rem}
+
+  .timeline{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-top:22px}
+  .bar{height:26px;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:.8rem;color:#fff;font-weight:600;white-space:nowrap}
+  .bar.life{background:var(--green);width:26%}
+  .bar.alert{background:var(--red);width:78%}
+  .row{margin-bottom:12px}
+  .row small{display:block;color:var(--muted);margin-bottom:5px;font-size:.8rem}
+  .gap{color:var(--amber);font-weight:600;font-size:.88rem;margin-top:6px}
+
+  footer{padding:40px 0 56px;color:var(--muted);font-size:.9rem;text-align:center}
+  ul.docs{list-style:none;padding:0;margin:22px 0 0}
+  ul.docs li{padding:9px 0;border-bottom:1px solid var(--border)}
+  ul.docs li:last-child{border-bottom:0}
+  ul.docs span{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Digital forensics &middot; eBPF &middot; Go</p>
+    <h1>Flight Recorder</h1>
+    <p class="tagline">Containers live for minutes. Security alerts arrive in tens of minutes. This preserves the crime scene before it deletes itself.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/Unspekable1654/flight-recorder/releases/latest">Download</a>
+      <a class="btn ghost" href="https://github.com/Unspekable1654/flight-recorder">View on GitHub</a>
+      <a class="btn ghost" href="https://github.com/Unspekable1654/flight-recorder/tree/main/examples">See a sealed bundle</a>
+    </div>
+    <div class="badges">
+      <img src="https://github.com/Unspekable1654/flight-recorder/actions/workflows/build.yaml/badge.svg" alt="build status">
+      <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 licence">
+      <img src="https://img.shields.io/badge/evidence-CASE%2FUCO%201.3.0-8250df" alt="CASE/UCO 1.3.0">
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>See it run</h2>
+    <p class="lede">Real output. The whole evidence pipeline — seal, sign, render, encrypt, verify — followed by a deliberate one-byte change to prove the seal catches it.</p>
+    <div class="demo"><img src="assets/demo.svg" alt="Terminal recording of flight-recorder demo sealing, signing and verifying evidence, then detecting tampering"></div>
+    <p class="caption">Runs on Windows, macOS and Linux. No kernel, no root, no cluster.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The problem</h2>
+    <p class="lede">When an attacker breaks into a container, the evidence that matters — the stolen password, the address it was sent to, the code that ran — exists only in that container memory. None of it reaches a log file.</p>
+    <div class="timeline">
+      <div class="row"><small>How long a container lives</small><div class="bar life">minutes</div></div>
+      <div class="row"><small>How long until a security alert is investigated</small><div class="bar alert">tens of minutes</div></div>
+      <p class="gap">▸ The difference is the blind spot. The investigator arrives at an empty room.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What it does</h2>
+    <p class="lede">Four steps, all automatic, all finished before the container is gone.</p>
+    <div class="grid">
+      <div class="card"><span class="n">1</span><h3>Watch</h3><p>eBPF probes observe process execution inside the Linux kernel, with no agent injected into the workload.</p></div>
+      <div class="card"><span class="n">2</span><h3>Capture</h3><p>On a rule match, process memory is read with <code>process_vm_readv</code> — never stopping, signalling or attaching to the target.</p></div>
+      <div class="card"><span class="n">3</span><h3>Seal</h3><p>A SHA-256 Merkle tree over the dump, signed with ECDSA P-256. One altered byte breaks the seal, provably.</p></div>
+      <div class="card"><span class="n">4</span><h3>Export</h3><p>A CASE/UCO JSON-LD bundle — the format INTERPOL, Europol EC3 and NIST endorse — readable years later without this tool.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Why not just use an existing tool?</h2>
+    <p class="lede">Because they answer a different question. Tracee, Tetragon and Falco tell you <em>something bad happened</em>. This tells you <em>what was inside the process</em>, and preserves it.</p>
+    <div class="scroll">
+    <table>
+      <tr><th></th><th>Tracee</th><th>Tetragon</th><th>Falco</th><th>Flight Recorder</th></tr>
+      <tr><td>Focus</td><td class="n">Detect</td><td class="n">Enforce</td><td class="n">Alert</td><td class="y">Preserve</td></tr>
+      <tr><td>Memory contents captured</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+      <tr><td>Cryptographic sealing</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Merkle + ECDSA</td></tr>
+      <tr><td>Court-ready output</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">CASE/UCO JSON-LD</td></tr>
+      <tr><td>Target process stopped</td><td class="n">n/a</td><td class="n">n/a</td><td class="n">n/a</td><td class="y">Never</td></tr>
+    </table>
+    </div>
+    <p class="caption">It is complementary, not competitive: run Falco for detection and Flight Recorder for preservation.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Measured, not projected</h2>
+    <p class="lede">From the integration suite on Linux 6.6. Reproduce with <code>sudo make test-integration</code>.</p>
+    <div class="stats">
+      <div class="stat"><b>~3.0 GB/s</b><span>acquisition throughput</span></div>
+      <div class="stat"><b>13 ms</b><span>trigger to sealed, verified bundle</span></div>
+      <div class="stat"><b>0.03 ms</b><span>race window between parse and read</span></div>
+      <div class="stat"><b>0 dropped</b><span>of 1001 events under rapid exec</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Try it yourself</h2>
+    <p class="lede">Download, unpack, run one command. Nothing to configure.</p>
+<pre><code>flight-recorder demo</code></pre>
+    <p>Or verify the sealed sample bundle committed to the repository, using only the public key — the position a third-party examiner is in:</p>
+<pre><code>flight-recorder verify --bundle examples/demo-bundle --key examples/demo-pub.pem</code></pre>
+<pre><code>  [ OK ] manifest file digests        5 file(s)
+  [SKIP] payload decryption
+  [SKIP] payload sha256
+  [SKIP] merkle root
+  [SKIP] leaf count
+  [ OK ] ecdsa signature
+  [ OK ] signer key id
+  [ OK ] CASE/UCO structure
+
+SEAL VERIFIED</code></pre>
+    <p class="caption">Checks that could not be run are reported as skipped, never as failures. An examiner should not be shown a red failure on evidence that is intact.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Read further</h2>
+    <ul class="docs">
+      <li><a href="https://github.com/Unspekable1654/flight-recorder/blob/main/docs/pitch-deck.md">Pitch deck</a> <span>— twelve slides, ten minutes, for a non-specialist audience</span></li>
+      <li><a href="https://github.com/Unspekable1654/flight-recorder/blob/main/docs/whitepaper.md">Whitepaper</a> <span>— the technical paper, with evaluation and methodology</span></li>
+      <li><a href="https://github.com/Unspekable1654/flight-recorder/blob/main/docs/architecture.md">Architecture</a> <span>— decision records, including the trade-offs that were rejected</span></li>
+      <li><a href="https://github.com/Unspekable1654/flight-recorder/blob/main/docs/runbook.md">Runbook</a> <span>— deployment, tuning and incident procedures</span></li>
+      <li><a href="https://github.com/Unspekable1654/flight-recorder/blob/main/SECURITY.md">Threat model</a> <span>— what is in scope, and what explicitly is not</span></li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Copyright 2026 Aalok &middot; Apache 2.0 &middot; <a href="https://github.com/Unspekable1654/flight-recorder">github.com/Unspekable1654/flight-recorder</a></p>
+    <p>An aircraft flight recorder is not what makes a plane safe.<br>It is what makes a crash explainable.</p>
+  </div>
+</footer>
+
+</body>
+</html>

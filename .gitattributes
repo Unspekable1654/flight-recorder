@@ -17,3 +17,14 @@ pkg/export/grpc/*.pb.go     linguist-generated=true
 # Vendored third-party headers should not count as this project's code.
 bpf/vmlinux.h        linguist-vendored=true
 bpf/include/bpf/*.h  linguist-vendored=true
+
+# The sample evidence bundle is cryptographically sealed. Any line-ending
+# conversion would change its bytes and break both the manifest digests and
+# the Merkle root, so nothing here is left to the text heuristics: the payload
+# is marked binary outright, and the plaintext files are pinned to LF so they
+# still render and diff on GitHub while hashing identically everywhere.
+examples/demo-bundle/dump.bin.zst.enc binary
+examples/demo-bundle/dump.bin.sha256  text eol=lf
+examples/demo-bundle/*.json           text eol=lf
+examples/demo-bundle/*.jsonld         text eol=lf
+examples/demo-pub.pem                 text eol=lf

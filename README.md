@@ -2,33 +2,136 @@
 
 **Forensic preservation for ephemeral compute.**
 
-Containers live for minutes. Alerts arrive in tens of minutes. By the time an
-incident responder looks, the process memory holding the payload, the C2
-address and the stolen credentials has been freed and the container garbage
-collected. The investigation starts at an empty crime scene.
+[![build](https://github.com/Unspekable1654/flight-recorder/actions/workflows/build.yaml/badge.svg)](https://github.com/Unspekable1654/flight-recorder/actions/workflows/build.yaml)
+[![release](https://img.shields.io/github/v/release/Unspekable1654/flight-recorder?sort=semver&color=blue)](https://github.com/Unspekable1654/flight-recorder/releases/latest)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![go](https://img.shields.io/github/go-mod/go-version/Unspekable1654/flight-recorder)](go.mod)
+[![evidence format](https://img.shields.io/badge/evidence-CASE%2FUCO%201.3.0-6f42c1)](https://caseontology.org/)
 
-Flight Recorder closes that gap. eBPF probes watch process execution inside the
-kernel. When an execution matches a trigger rule, the process's memory is
-acquired with `process_vm_readv(2)` — without stopping, signalling or
-ptrace-attaching the target — then sealed with a SHA-256 Merkle tree, signed
-with ECDSA P-256, and written as a [CASE/UCO](https://caseontology.org/)
-JSON-LD bundle that an examiner can verify independently, years later, with no
-access to this tool.
+<img src="docs/assets/demo.svg" alt="flight-recorder demo: the evidence pipeline seals, signs and verifies a capture, then detects tampering" width="100%">
+
+<sub>Real output from `flight-recorder demo`. It runs on Windows, macOS and Linux — no kernel, no root, no cluster.</sub>
+
+---
+
+## What this does, in plain English
+
+Skip this section if you already know what eBPF is.
+
+Modern software runs in **containers**: small, disposable boxes that start, do
+a job, and get thrown away — often within minutes.
+
+That is a problem when something goes wrong. If an attacker breaks into a
+container, the evidence that matters lives only in that container's memory:
+the password they stole, the address of the machine they were sending it to,
+the code they were running. None of that gets written to a log file. Security
+alerts usually arrive tens of minutes later, and by then the container has
+been deleted and its memory reused. The investigator arrives at an empty room.
+
+Flight Recorder runs on the machine and watches for suspicious behaviour. The
+moment it sees any, it photographs the memory of the process responsible —
+without pausing, signalling or otherwise disturbing that process — and locks
+the photograph in a sealed, digitally signed envelope. Change a single byte of
+it afterwards and the seal breaks, loudly and provably.
+
+What comes out is evidence that still holds up years later, written in a
+format that professional forensics tools already read.
+
+> The name is the aviation analogy: an aircraft's flight recorder is not what
+> makes a plane safe. It is what makes a crash explainable.
+
+**Where this sits:** other tools answer *"did something bad happen?"* and hand
+you a log line. This one answers *"what was actually inside that process?"* and
+preserves the answer. See [the comparison below](#why-this-is-not-another-ebpf-security-tool).
+
+---
+
+## Try it in 60 seconds
+
+You do not need Linux, root, a cluster, or a Go toolchain to see this work.
+The part that seals, signs, encrypts and verifies evidence is ordinary
+software and runs anywhere.
+
+1. Download the archive for your machine from
+   [the latest release](https://github.com/Unspekable1654/flight-recorder/releases/latest)
+   — `.zip` for Windows, `.tar.gz` for macOS and Linux.
+2. Unpack it.
+3. Run one command:
 
 ```
-$ flight-recorder verify --bundle ./evidence/6f1c2b3a-... --key pub.pem
+flight-recorder demo
+```
 
-  [ OK ] manifest file digests        4 file(s)
+It fabricates a memory image, plants an attacker's command inside it, and puts
+that through the real pipeline: Merkle seal, ECDSA signature, CASE/UCO
+rendering, compression, encryption, then verification. It finishes by flipping
+a single byte and showing verification correctly fail.
+
+Nothing is simulated except the memory image itself.
+
+**Or verify a sealed bundle without running anything**, using the sample
+committed to this repository:
+
+```
+flight-recorder verify --bundle examples/demo-bundle --key examples/demo-pub.pem
+```
+
+You can also just [read that bundle in your browser](examples/) — four of its
+six files are plaintext, on purpose.
+
+Live memory acquisition (`capture` and `start`) is the part that does need
+Linux: it is built on eBPF and `process_vm_readv(2)`.
+
+---
+
+## What verification looks like
+
+```
+$ flight-recorder verify --bundle ./evidence/6b3f8dbe-... --key key.pem
+
+  [ OK ] manifest file digests        5 file(s)
   [ OK ] payload decryption
-  [ OK ] payload sha256               9f86d081884c7d659a2feaa0c55ad015...
-  [ OK ] merkle root                  2c26b46b68ffc68ff99b453c1d304134...
+  [ OK ] payload sha256               ba76e6fefaa322e6b017287ddab8c8b2...
+  [ OK ] merkle root                  c60318963689c015e04659f307f71fb8...
   [ OK ] leaf count
   [ OK ] ecdsa signature
   [ OK ] signer key id
   [ OK ] CASE/UCO structure
 
-VERIFIED  6f1c2b3a-4d5e-4f60-9a8b-7c6d5e4f3a2b  (merkle root 2c26b46b68ff...)
+VERIFIED  6b3f8dbe-0575-4b2d-937c-978a24a09430  (merkle root c60318963689c015...)
 ```
+
+Hand it only the **public** key — the position a third-party examiner is in —
+and the content checks are reported as skipped rather than failed, because
+they genuinely could not be run:
+
+```
+$ flight-recorder verify --bundle ./evidence/6b3f8dbe-... --key pub.pem
+
+  [ OK ] manifest file digests        5 file(s)
+  [SKIP] payload decryption
+  [SKIP] payload sha256
+  [SKIP] merkle root
+  [SKIP] leaf count
+  [ OK ] ecdsa signature
+  [ OK ] signer key id
+  [ OK ] CASE/UCO structure
+
+SEAL VERIFIED  6b3f8dbe-0575-4b2d-937c-978a24a09430
+```
+
+An examiner should never be shown a red failure on evidence that is intact.
+
+---
+
+## How it earns the name
+
+eBPF probes watch process execution inside the kernel. When an execution
+matches a trigger rule, the process's memory is acquired with
+`process_vm_readv(2)` — without stopping, signalling or ptrace-attaching the
+target — then sealed with a SHA-256 Merkle tree, signed with ECDSA P-256, and
+written as a [CASE/UCO](https://caseontology.org/) JSON-LD bundle that an
+examiner can verify independently, years later, with no access to this tool.
 
 ---
 
@@ -106,7 +209,10 @@ Full rationale, including the trade-offs that were rejected, is in
 
 ## Quick start
 
-### Try it with no kernel, no root, no cluster
+### From source, with no kernel, no root and no cluster
+
+A prebuilt binary is the faster route — see [Try it in 60 seconds](#try-it-in-60-seconds).
+To build it yourself:
 
 ```bash
 go build -o flight-recorder ./cmd/flight-recorder
@@ -116,6 +222,9 @@ go build -o flight-recorder ./cmd/flight-recorder
 `demo` runs the real pipeline against a synthetic capture: seal, sign, render
 CASE/UCO, compress, encrypt, write the bundle, verify it — then flip one byte
 and show verification correctly fail.
+
+This builds on Windows and macOS too. `make build-cross` produces every
+published target at once, including `flight-recorder.exe`.
 
 ### Capture a live process
 
@@ -230,7 +339,10 @@ evidence/<case-id>/
 ```
 
 Everything except the payload is readable without the key, so triage does not
-require handing the decryption key to whoever is doing triage.
+require handing the decryption key — and therefore every credential in the
+dump — to whoever is doing the triage. Verifying with the public key alone
+returns `SEAL VERIFIED`: the signature, manifest digests and CASE/UCO document
+are proven, and the content checks are reported as skipped, not failed.
 
 ```bash
 flight-recorder inspect --bundle ./evidence/<case-id>          # no key needed
@@ -334,6 +446,8 @@ not a benchmark suite; the methodology is in
 - [docs/architecture.md](docs/architecture.md) — architecture decision records
 - [docs/runbook.md](docs/runbook.md) — deployment, tuning, incident procedures
 - [docs/whitepaper.md](docs/whitepaper.md) — technical paper with evaluation
+- [docs/pitch-deck.md](docs/pitch-deck.md) — the short version, for a non-specialist audience
+- [examples/](examples/) — a real sealed evidence bundle you can verify yourself
 - [test/scenarios/](test/scenarios/) — five adversary emulation scenarios
 - [SECURITY.md](SECURITY.md) — threat model and vulnerability disclosure
 - [CONTRIBUTING.md](CONTRIBUTING.md) — development setup and standards

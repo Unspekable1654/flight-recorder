@@ -47,3 +47,20 @@ audit.jsonl
 # Note on generated eBPF artefacts: pkg/probe/recorder_bpfel.go and
 # recorder_bpfel.o ARE committed on purpose, so that `go build` works without a
 # clang toolchain. Only regenerate them with `make generate`.
+
+# The one deliberate exception to the rules above: examples/ carries a bundle
+# produced by `flight-recorder demo`, whose payload is synthetic and contains
+# no real memory, plus the PUBLIC half of the throwaway key that signed it.
+# It exists so that anyone can run `verify` against real output without
+# building the tool first.
+#
+# These are listed file by file rather than with a blanket !examples/** so
+# that a private key dropped into this directory stays ignored. The build
+# workflow additionally fails if any private key material is ever committed.
+!/examples/demo-pub.pem
+!/examples/demo-bundle/manifest.json
+!/examples/demo-bundle/metadata.jsonld
+!/examples/demo-bundle/receipt.json
+!/examples/demo-bundle/regions.json
+!/examples/demo-bundle/dump.bin.sha256
+!/examples/demo-bundle/dump.bin.zst.enc
