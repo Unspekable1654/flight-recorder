@@ -46,6 +46,12 @@ type Report struct {
 	CASEError   string `json:"case_error,omitempty"`
 
 	Errors []string `json:"errors,omitempty"`
+
+	// Skipped records checks that could not be performed, as opposed to checks
+	// that were performed and failed. An examiner holding only the public key
+	// cannot decrypt the payload, so the content checks are skipped; reporting
+	// that as a failure would tell them their pristine evidence is broken.
+	Skipped []string `json:"skipped,omitempty"`
 }
 
 // OK reports whether every performed check passed.
@@ -67,10 +73,44 @@ func (r *Report) OK() bool {
 	return r.PayloadDecrypted && r.PayloadSHA256Match
 }
 
+// SealVerified reports whether every check that could be performed passed.
+//
+// It differs from OK by tolerating checks skipped for want of the decryption
+// key. That is the position a third-party examiner is in when handed the
+// bundle and the public key alone, and it is a supported workflow: the
+// signature over the receipt, the manifest digests and the CASE/UCO document
+// are all still proven. What cannot be proven without the key is that the
+// ciphertext decrypts to the plaintext the receipt names.
+func (r *Report) SealVerified() bool {
+	if !r.ManifestPresent || !r.ReceiptPresent || len(r.Errors) > 0 {
+		return false
+	}
+	for _, c := range r.FileChecks {
+		if !c.OK {
+			return false
+		}
+	}
+	if r.CASEPresent && !r.CASEValid {
+		return false
+	}
+	if !r.SealChecked {
+		return false
+	}
+	if r.PayloadDecrypted {
+		// Full verification was possible, so hold it to the full standard.
+		return r.Seal.OK() && r.PayloadSHA256Match
+	}
+	// Payload withheld: the receipt's own signature is what remains provable.
+	return r.Seal.SignatureValid && r.Seal.KeyIDMatches
+}
+
 // Summary renders a one-line verdict.
 func (r *Report) Summary() string {
 	if r.OK() {
 		return fmt.Sprintf("VERIFIED  %s  (merkle root %s)", r.CaseID, r.Seal.RecomputedRoot)
+	}
+	if r.SealVerified() {
+		return fmt.Sprintf("SEAL VERIFIED  %s  (signature, manifest and CASE/UCO check out; payload not examined)", r.CaseID)
 	}
 	return fmt.Sprintf("FAILED    %s  (%d error(s))", r.CaseID, len(r.Errors))
 }
@@ -155,15 +195,25 @@ func VerifyBundle(dir string, pub *ecdsa.PublicKey, signer *seal.Signer) (*Repor
 			}
 		}
 		if hasEncrypted {
-			report.Errors = append(report.Errors, "payload is encrypted and no key was supplied: content verification skipped")
-			// Still verify the signature over the receipt's own claims.
-			if pub != nil {
-				res, verr := verifySignatureOnly(receipt, pub)
-				if verr != nil {
-					report.Errors = append(report.Errors, verr.Error())
-				}
-				report.Seal = res
-				report.SealChecked = true
+			if pub == nil {
+				// No key of either kind: nothing cryptographic was checked, so
+				// this is a genuine failure rather than a partial result.
+				report.Errors = append(report.Errors,
+					"payload is encrypted and no key was supplied: nothing could be verified")
+				return report, nil
+			}
+			report.Skipped = append(report.Skipped,
+				"payload is encrypted and no decryption key was supplied: content checks skipped")
+			// The signature over the receipt's own claims is still provable.
+			res, verr := verifySignatureOnly(receipt, pub)
+			if verr != nil {
+				report.Errors = append(report.Errors, verr.Error())
+			}
+			report.Seal = res
+			report.SealChecked = true
+			if !res.SignatureValid {
+				report.Errors = append(report.Errors,
+					"receipt signature does not verify against the supplied key")
 			}
 			return report, nil
 		}

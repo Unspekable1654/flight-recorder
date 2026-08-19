@@ -42,7 +42,11 @@ Any single failure is reported with the specific check that failed, because
 "the manifest was edited" and "the payload was modified" call for very
 different responses.
 
-Exit status is 0 only when every check passes.`,
+Exit status is 0 when every check that could be performed passed. Supplying
+only the public key is a supported triage workflow: the signature, the manifest
+digests and the CASE/UCO document are still proven, and the content checks are
+reported as skipped rather than failed. Supplying no key at all verifies
+nothing and is an error.`,
 		Example: `  flight-recorder verify --bundle ./evidence/6f1c... --key /etc/flight-recorder/key.pem
   flight-recorder verify --all --root ./evidence --key ./pub.pem --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -82,7 +86,7 @@ Exit status is 0 only when every check passes.`,
 					return err
 				}
 				reports = append(reports, report)
-				if !report.OK() {
+				if !report.SealVerified() {
 					failures++
 				}
 			}
@@ -139,6 +143,17 @@ func printReport(cmd *cobra.Command, r *evidence.Report) {
 		fmt.Fprintf(out, "  [%s] %s\n", mark, label)
 	}
 
+	// A check that could not be run is not a check that failed. Without this
+	// distinction, key-less triage of pristine evidence reads as a red wall.
+	contentSkipped := !r.PayloadDecrypted && len(r.Skipped) > 0
+	contentCheck := func(label string, ok bool, detail string) {
+		if contentSkipped {
+			fmt.Fprintf(out, "  [SKIP] %s\n", label)
+			return
+		}
+		check(label, ok, detail)
+	}
+
 	filesOK := true
 	for _, c := range r.FileChecks {
 		if !c.OK {
@@ -152,16 +167,19 @@ func printReport(cmd *cobra.Command, r *evidence.Report) {
 		}
 	}
 
-	check("payload decryption", r.PayloadDecrypted, "")
-	check("payload sha256", r.PayloadSHA256Match, r.PayloadSHA256)
-	check("merkle root", r.Seal.RootMatches, r.Seal.RecomputedRoot)
-	check("leaf count", r.Seal.LeafCountMatches, "")
+	contentCheck("payload decryption", r.PayloadDecrypted, "")
+	contentCheck("payload sha256", r.PayloadSHA256Match, r.PayloadSHA256)
+	contentCheck("merkle root", r.Seal.RootMatches, r.Seal.RecomputedRoot)
+	contentCheck("leaf count", r.Seal.LeafCountMatches, "")
 	check("ecdsa signature", r.Seal.SignatureValid, "")
 	check("signer key id", r.Seal.KeyIDMatches, "")
 	if r.CASEPresent {
 		check("CASE/UCO structure", r.CASEValid, r.CASEError)
 	}
 
+	for _, sk := range r.Skipped {
+		fmt.Fprintf(out, "  note: %s\n", sk)
+	}
 	for _, e := range r.Errors {
 		fmt.Fprintf(out, "  note: %s\n", e)
 	}
