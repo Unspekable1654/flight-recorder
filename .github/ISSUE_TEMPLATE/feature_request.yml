@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a capability or a change in behaviour
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you unable to do today? Describe the situation, not the solution you have in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like to see
+    validations:
+      required: true
+
+  - type: textarea
+    id: forensic-impact
+    attributes:
+      label: Effect on evidential integrity
+      description: |
+        This tool produces evidence that may be relied on in proceedings.
+        Does the proposal change what is captured, what is sealed, or what a
+        verifier can prove? An honest "I am not sure" is a fine answer.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

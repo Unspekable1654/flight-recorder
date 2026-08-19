@@ -1,0 +1,78 @@
+name: Bug report
+description: Something behaves differently from what is documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not use this form for security defects. Report those privately
+        through the [advisory workflow](https://github.com/Unspekable1654/flight-recorder/security/advisories/new).
+
+        Never attach a memory dump. Dumps routinely contain credentials and
+        personal data belonging to people who are not part of this report.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. flight-recorder start --trigger ...
+        2. run ... in another terminal
+        3. observe ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of "flight-recorder version"
+    validations:
+      required: true
+
+  - type: input
+    id: kernel
+    attributes:
+      label: Kernel and distribution
+      description: Output of "uname -a", plus the distribution. Write "n/a" if the problem is in demo, verify, inspect or decrypt.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where it runs
+      options:
+        - Linux, bare metal or VM
+        - Linux, in Kubernetes
+        - Linux, in a container
+        - macOS
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Run with --log-level debug where possible. Redact anything sensitive.
+      render: shell
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: This is not a security defect
+          required: true
+        - label: No memory dump, signing key or credential is attached
+          required: true

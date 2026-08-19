@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Unspekable1654/flight-recorder/security/advisories/new
+    about: Report privately through the GitHub advisory workflow. Please do not open a public issue for a security defect.
+  - name: Ask a question
+    url: https://github.com/Unspekable1654/flight-recorder/discussions
+    about: For usage questions and design discussion.
